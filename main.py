@@ -74,8 +74,8 @@ PRINT_REPORT_ON_IMAGE = True
 
 VERSION='2024/dec/03 2.5m'
 
-from utils_cv_LV_v2_5m import *
-from color_config_v2_5m import *
+from utils_cv import *
+from config_profiles import *
 
 
 # Configure debugging levels and wait times based on batch mode and debug status
