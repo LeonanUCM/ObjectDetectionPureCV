@@ -1,4 +1,21 @@
-# 2024/nov/03 2.5m
+NOTEBOOK_MODE = True
+DEBUG_LEVEL = 3
+WAIT_TIME = 1
+BATCH_MODE = True
+PRINT_REPORT_ON_IMAGE = True
+VERSION='2024/dec/05'
+
+def set_debug_level(level):
+    DEBUG_LEVEL = level
+    
+def set_notebook_mode(mode=True):
+    NOTEBOOK_MODE = mode
+    
+def set_batch_mode(mode=True):
+    BATCH_MODE = mode
+
+def set_print_report_on_image(mode=True):
+    PRINT_REPORT_ON_IMAGE = mode
 
 
 def load_config(profile):

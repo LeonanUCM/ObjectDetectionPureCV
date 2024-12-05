@@ -8,32 +8,22 @@ import PIL.ExifTags as EXIF
 from PIL import Image as PILImage
 from scipy import ndimage as ndi
 import base64
+import config_profiles
 
-global NOTEBOOK_MODE
-global DEBUG_LEVEL
-
-NOTEBOOK_MODE = False
-DEBUG_LEVEL = 1
-
-def set_debug_level(level):
-    DEBUG_LEVEL = level
-    
-def set_notebook_mode():
+if config_profiles.NOTEBOOK_MODE:
     import matplotlib.pyplot as plt
     import ipywidgets as widgets
     from IPython.display import display
-    NOTEBOOK_MODE = True
-    
 
 def debug_print(*args, **kwargs):
     """
-    Custom debug_print function that only outputs messages if DEBUG_LEVEL > 0.
+    Custom debug_print function that only outputs messages if config_profiles.DEBUG_LEVEL > 0.
 
     Args:
         *args: Positional arguments passed to the debug_print function.
         **kwargs: Keyword arguments passed to the debug_print function.
     """
-    if DEBUG_LEVEL > 1:
+    if config_profiles.DEBUG_LEVEL > 1:
         print(*args, **kwargs)
 
 def resize_image(image, max_resolution=1200, downscale_factor=0, interpolation=cv2.INTER_AREA):
@@ -2416,7 +2406,7 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
     )
     height, width = mosaic.shape[:2]
 
-    if NOTEBOOK_MODE:
+    if config_profiles.NOTEBOOK_MODE == True:
         # Display the mosaic in a Jupyter Notebook.
         plt.figure(figsize=(10, 10))
         plt.imshow(mosaic)  # Convert from BGR to RGB for correct color display
@@ -2436,7 +2426,7 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
         # Resize the window to match the mosaic image's dimensions.
         cv2.resizeWindow(window_name, width, height)
         # Wait for a key press to ensure the window remains open.
-        cv2.waitKey(WAIT_TIME)
+        cv2.waitKey(config_profiles.WAIT_TIME)
 
         
     
