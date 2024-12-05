@@ -1,4 +1,4 @@
-# 2024/Nov/03 2.5m
+# Utils: functions created by the author
 
 import numpy as np 
 import cv2
@@ -8,6 +8,17 @@ import PIL.ExifTags as EXIF
 from PIL import Image as PILImage
 from scipy import ndimage as ndi
 import base64
+
+def debug_print(*args, **kwargs):
+    """
+    Custom debug_print function that only outputs messages if DEBUG_LEVEL > 0.
+
+    Args:
+        *args: Positional arguments passed to the debug_print function.
+        **kwargs: Keyword arguments passed to the debug_print function.
+    """
+    if DEBUG_LEVEL > 1:
+        print(*args, **kwargs)
 
 def resize_image(image, max_resolution=1200, downscale_factor=0, interpolation=cv2.INTER_AREA):
     """
@@ -66,7 +77,8 @@ def image_to_base64(image_cv2):
     """
     # Encode the image as JPEG Base64
     # You can also use '.png' for PNG or change the format as needed
-    img_cv2_rgb = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB)  # OpenCV uses BGR internally
+    img_cv2_rgb = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB) # OpenCV uses BGR internally
+        
     _, buffer = cv2.imencode('.jpg', img_cv2_rgb)
 
     # Convert the image bytes to Base64
@@ -451,7 +463,7 @@ def transform_mask(mask, iterations=1, pepper_kernel_size=3, close_kernel_size=6
 
         # Optionally display the sequence of transformations
         if show:
-            print(f"Detail of transformations on mask:")
+            debug_print(f"Detail of transformations on mask:")
             show_mosaic(mask_history, mosaic_dims=(math.ceil(len(mask_history)/2), 2))
         
     # Return the final mask after transformations
@@ -508,8 +520,8 @@ def filter_color(image, color_ini, color_end, iterations=1,
 
         color_ini = (round(color_ini[0]/2.0), round(color_ini[1]*2.55), round(color_ini[2]*2.55))
         color_end = (round(color_end[0]/2.0), round(color_end[1]*2.55), round(color_end[2]*2.55))
-        #print("HSV: Color Parameters Normalized:")
-        #print(f"   color_ini={color_ini}     color_end={color_end}")
+        #debug_print("HSV: Color Parameters Normalized:")
+        #debug_print(f"   color_ini={color_ini}     color_end={color_end}")
     elif color_space == 'LAB':
         # Validate range of colors
         str_color_format =  "LAB format: L=[0:100]  A=[-128:127]  B=[-128:127]."
@@ -525,17 +537,17 @@ def filter_color(image, color_ini, color_end, iterations=1,
         image[...,2] = np.array(image[...,2]-128, dtype=np.int8)
         image = np.array(image, dtype=np.int8)
 
-        # print("LAB: Image normalized:")
-        # print(f"  image[...,0]=[{image[...,0].min()}:{image[...,0].max()}]")
-        # print(f"  image[...,1]=[{image[...,1].min()}:{image[...,1].max()}]")
-        # print(f"  image[...,2]=[{image[...,2].min()}:{image[...,2].max()}]")
+        # debug_print("LAB: Image normalized:")
+        # debug_print(f"  image[...,0]=[{image[...,0].min()}:{image[...,0].max()}]")
+        # debug_print(f"  image[...,1]=[{image[...,1].min()}:{image[...,1].max()}]")
+        # debug_print(f"  image[...,2]=[{image[...,2].min()}:{image[...,2].max()}]")
     
 
     # --- Add support to inverted ranges. Example: Interval 200 to 100 will select 200 to 255 and 0 to 100
     color_ini1, color_end1 = np.array(color_ini), np.array(color_end)
     color_ini2, color_end2 = color_ini1.copy(), color_end1.copy()
-    #print(f"color_ini1={color_ini1}   color_end1={color_end1}")
-    #print(f"color_ini2={color_ini2}   color_end2={color_end2}")
+    #debug_print(f"color_ini1={color_ini1}   color_end1={color_end1}")
+    #debug_print(f"color_ini2={color_ini2}   color_end2={color_end2}")
     detected_inverted_interval = False
 
     for i in range(len(color_ini)):
@@ -547,8 +559,8 @@ def filter_color(image, color_ini, color_end, iterations=1,
             color_ini2[i] = color_ini[i]
             color_end2[i] = 255
 
-            #print(f"color_ini1={color_ini1}   color_end1={color_end1}")
-            #print(f"color_ini2={color_ini2}   color_end2={color_end2}")
+            #debug_print(f"color_ini1={color_ini1}   color_end1={color_end1}")
+            #debug_print(f"color_ini2={color_ini2}   color_end2={color_end2}")
 
     # --- Apply range to the image getting the mask
     if detected_inverted_interval:
@@ -603,7 +615,7 @@ def apply_clahe(img_RGB, tileGridSize=(100, 100), clipLimit=2.0):
     img_GRAY = img_HSV[:, :, 2]
 
     if clipLimit == 0 or tileGridSize < (3,3):
-        print("CLAHE not applied. clipLimit must be greater than 0 and tileGridSize must be at least (3,3).")
+        debug_print("CLAHE not applied. clipLimit must be greater than 0 and tileGridSize must be at least (3,3).")
         return img_GRAY, img_RGB, img_HSV
     
     # Apply CLAHE to the grayscale image.
@@ -808,7 +820,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
             params.maxArea = int(maxArea * 0.6)
         elif turn == 5:
             # Sixth turn, last attempt
-            print("   Last attempt to detect circles.")
+            debug_print("   Last attempt to detect circles.")
 
 
         # Validate parameters
@@ -828,7 +840,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
 
         circles = set_minimum_radius_circle(circles, min_radius)  # Make small circles bigger
         circles = set_maximum_radius_circle(circles, max_radius)  # Make big circles smaller
-        print(f"    Turn {turn}: {len(circles)} circles detected.")
+        debug_print(f"    Turn {turn}: {len(circles)} circles detected.")
         
         # Erase detected circles from the mask
         if last_circles is not None:
@@ -848,9 +860,9 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
         last_circles = circles
         circles_result += circles
         
-    print(f"    {len(circles_result)} circles detected before remove overlap.")
+    debug_print(f"    {len(circles_result)} circles detected before remove overlap.")
     circles_result, discarded_circles = remove_overlapping_circles(circles_result, tolerance=tolerance_overlap)
-    print(f"    {len(circles_result)} circles detected after remove overlap.")
+    debug_print(f"    {len(circles_result)} circles detected after remove overlap.")
 
     # Draw discarded circles (gray)
     for circle in discarded_circles:
@@ -1167,7 +1179,7 @@ def get_exif_data(image):
     try:
         # Retrieve EXIF information from the image.
         if info := image._getexif():
-            print(f'EXIF={info}')
+            debug_print(f'EXIF={info}')
             for tag, value in info.items():
                 decoded = EXIF.TAGS.get(tag, tag)
                 if decoded == "GPSInfo":
@@ -1182,7 +1194,7 @@ def get_exif_data(image):
         return get_gps_coordinates(exif_data), get_camera_info_from_exif(exif_data)
     except Exception as e:
         # Handle any errors during EXIF extraction.
-        print(f"Error reading EXIF data: {e}")
+        debug_print(f"Error reading EXIF data: {e}")
         return (None, None), (None, None, None)
 
 
@@ -1313,7 +1325,7 @@ def kmeans_recolor(original_image, n_clusters=8):
     original_vectorized = np.float32(original_vectorized)
     
     # Define criteria and apply K-Means clustering.
-    print("Applying KMeans")
+    debug_print("Applying KMeans")
     attempts = 5
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     rets, labels, centers = cv2.kmeans(
@@ -1329,7 +1341,7 @@ def kmeans_recolor(original_image, n_clusters=8):
     clustered_labels = labels.reshape((original_image.shape[0], original_image.shape[1]))
     clustered_labels = np.uint8(clustered_labels)
 
-    print("Coloring Viridis")
+    debug_print("Coloring Viridis")
     # Normalize labels for applying a color map.
     labels_8bit = cv2.normalize(
         clustered_labels, 
@@ -1343,12 +1355,12 @@ def kmeans_recolor(original_image, n_clusters=8):
     # Apply a color map (e.g., COLORMAP_JET) for visualization.
     clustered_rgb = cv2.applyColorMap(labels_8bit, cv2.COLORMAP_JET)
     
-    print("Recoloring based on original")
+    debug_print("Recoloring based on original")
     # Assign each pixel the color of its corresponding cluster center.
     center = np.uint8(centers)
     res = center[labels.flatten()]
     recolored_image = res.reshape((original_image.shape))
-    print("KMeans finished")
+    debug_print("KMeans finished")
 
     # Resize the recolored image back to the original size.
     recolored_image = cv2.resize(recolored_image, (width, height), interpolation=cv2.INTER_AREA)
@@ -1500,7 +1512,7 @@ def save_image(image, path_filename_result):
     
     # Save the image to the specified path.
     cv2.imwrite(path_filename_result, img_RGB)
-    print(f"    Saved: {path_filename_result}")
+    debug_print(f"    Saved: {path_filename_result}")
 
 
 def crop_image_to_aspect_ratio(image, ratio=(4, 3)):
@@ -2400,7 +2412,7 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
     # Resize the window to match the mosaic image's dimensions.
     cv2.resizeWindow(window_name, width, height)
     # Wait for a key press to ensure the window remains open.
-    cv2.waitKey(1)
+    cv2.waitKey(WAIT_TIME)
 
 
 def draw_ellipse_by_factor(image, factor=(0.5, 0.5), color=(255, 255, 255), thickness=-1):
@@ -2461,12 +2473,12 @@ def detect_contours(mask, min_number_of_points=0):
     mask = np.array(mask, dtype=np.uint8)
     # Find external contours using the TC89_KCOS approximation method.
     contours_list, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
-    print(f'Found {len(contours_list)} contours.')
+    debug_print(f'Found {len(contours_list)} contours.')
 
     # Filter contours by the number of points using list comprehension.
     if min_number_of_points > 0:
         filtered_contours = [cnt for cnt in contours_list if cnt.shape[0] >= min_number_of_points]
-        print(f'{len(contours_list)} contours reduced to {len(filtered_contours)}.')
+        debug_print(f'{len(contours_list)} contours reduced to {len(filtered_contours)}.')
         contours_list = filtered_contours
 
     return contours_list

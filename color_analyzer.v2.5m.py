@@ -67,7 +67,7 @@ import os
 import random
 from PIL import Image as PILImage
 import io, base64, json
-__all__ = ['count_round_objects', 'display_results']
+import numpy as np
 
 BATCH_MODE = True
 PRINT_REPORT_ON_IMAGE = True
@@ -77,13 +77,12 @@ VERSION='2024/dec/03 2.5m'
 from utils_cv_LV_v2_5m import *
 from color_config_v2_5m import *
 
-# Flags for interactive tuning of various processing stages
-TUNNING_BLUR = TUNNING_TEXTURE = TUNNING_FOREGROUND = TUNNING_OBJECT = TUNNING_CIRCLES = False
 
 # Configure debugging levels and wait times based on batch mode and debug status
 if BATCH_MODE:
     DEBUG_LEVEL = 0
     WAIT_TIME = 1
+    TUNNING_BLUR = TUNNING_TEXTURE = TUNNING_FOREGROUND = TUNNING_OBJECT = TUNNING_CIRCLES = False
 else:
     TUNNING_BLUR = True
     TUNNING_TEXTURE = True
@@ -97,7 +96,6 @@ else:
 # Main Function
 #####################################################################################################
 
-import numpy as np
 
 
 def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_str='', json_gps_str=''):
@@ -1116,3 +1114,26 @@ accuracy_summaries.append(test_directory(r"./test_images", 'YELLOW_PEACH ', limi
 
 for summary in accuracy_summaries:
     print(summary)
+
+
+
+
+    #####################################################################################################
+    print(f'6.1. Fill holes:')
+    #####################################################################################################
+
+    img_tmp = images[-1].copy()
+    img_before = img_tmp
+
+	img_tmp = fill_holes_with_gray(img_tmp, 100);
+
+
+    if DEBUG_LEVEL >= 3:
+        show_mosaic([img_before, img_tmp], 
+                    window_name='Fill Holes', 
+                    headers=['Original'],
+                    footers=['Filled'], mosaic_dims=(1, 2), max_resolution=600)
+        
+
+    img_preprocess = img_tmp
+    images.append(img_preprocess)
