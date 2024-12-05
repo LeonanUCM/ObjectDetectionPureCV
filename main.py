@@ -1125,7 +1125,7 @@ for summary in accuracy_summaries:
     img_tmp = images[-1].copy()
     img_before = img_tmp
 
-	img_tmp = fill_holes_with_gray(img_tmp, 100);
+    img_tmp = fill_holes_with_gray(img_tmp, 100);
 
 
     if DEBUG_LEVEL >= 3:
