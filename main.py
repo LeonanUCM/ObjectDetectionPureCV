@@ -680,9 +680,30 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
                     footers=['Improved contrast'], mosaic_dims=(3, 1), max_resolution=600)
         cv2.waitKey(WAIT_TIME)
 
-    img_preprocess = img_contrast
-    images.append(img_preprocess)
+    images.append(img_contrast)
 
+
+    #####################################################################################################
+    print(f'6.1. Fill holes:')
+    #####################################################################################################
+
+    img_tmp = images[-1].copy()
+    img_before = img_tmp
+
+    img_tmp = fill_holes_with_gray(img_tmp, 100);
+
+
+    if DEBUG_LEVEL >= 3:
+        show_mosaic([img_before, img_tmp], 
+                    window_name='Fill Holes', 
+                    headers=['Original'],
+                    footers=['Filled'], mosaic_dims=(1, 2), max_resolution=600)
+        
+
+    img_preprocess = img_tmp
+    images.append(img_preprocess)
+    
+    
     #####################################################################################################
     print(f'7. Detect Circles:')
     #####################################################################################################
@@ -1102,38 +1123,3 @@ def test_directory(directory, profile, specific_files=[], limit_files=0):
         pbar.close()
 
     return accuracy_sumary
-
-
-# ------------------------------- MAIN ------------------------------- #
-# Validation tests:
-accuracy_summaries = []
-limit_files_per_dir=0
-
-
-accuracy_summaries.append(test_directory(r"./test_images", 'YELLOW_PEACH ', limit_files=limit_files_per_dir))
-
-for summary in accuracy_summaries:
-    print(summary)
-
-
-
-
-    #####################################################################################################
-    print(f'6.1. Fill holes:')
-    #####################################################################################################
-
-    img_tmp = images[-1].copy()
-    img_before = img_tmp
-
-    img_tmp = fill_holes_with_gray(img_tmp, 100);
-
-
-    if DEBUG_LEVEL >= 3:
-        show_mosaic([img_before, img_tmp], 
-                    window_name='Fill Holes', 
-                    headers=['Original'],
-                    footers=['Filled'], mosaic_dims=(1, 2), max_resolution=600)
-        
-
-    img_preprocess = img_tmp
-    images.append(img_preprocess)
