@@ -9,15 +9,20 @@ from PIL import Image as PILImage
 from scipy import ndimage as ndi
 import base64
 
-def set_debug_level(level):
-    """
-    Sets the global DEBUG_LEVEL variable to the specified level.
+global NOTEBOOK_MODE
+global DEBUG_LEVEL
 
-    Args:
-        level (int): The debug level to set. Use 0 to disable debug messages.
-    """
-    global DEBUG_LEVEL
+NOTEBOOK_MODE = False
+DEBUG_LEVEL = 1
+
+def set_debug_level(level):
     DEBUG_LEVEL = level
+    
+def set_notebook_mode():
+    import matplotlib.pyplot as plt
+    import ipywidgets as widgets
+    from IPython.display import display
+    NOTEBOOK_MODE = True
     
 
 def debug_print(*args, **kwargs):
@@ -2411,21 +2416,30 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
     )
     height, width = mosaic.shape[:2]
 
-    # Destroy any existing windows and create a new one for the mosaic.
-    cv2.destroyAllWindows()
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    # Keep the mosaic window on top of other windows.
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
-    # Move the mosaic window to the top-left corner of the screen.
-    cv2.moveWindow(window_name, 0, 0)
-    # Display the mosaic image.
-    im_show_max(mosaic, window_name=window_name, max_resolution=max_resolution)
-    # Resize the window to match the mosaic image's dimensions.
-    cv2.resizeWindow(window_name, width, height)
-    # Wait for a key press to ensure the window remains open.
-    cv2.waitKey(WAIT_TIME)
+    if NOTEBOOK_MODE:
+        # Display the mosaic in a Jupyter Notebook.
+        plt.figure(figsize=(10, 10))
+        plt.imshow(mosaic)  # Convert from BGR to RGB for correct color display
+        plt.axis('off')  # Turn off axis
+        plt.title(window_name, fontsize=16, fontweight='bold')  # Add title
+        plt.show()
+    else:
+        # Destroy any existing windows and create a new one for the mosaic.
+        cv2.destroyAllWindows()
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        # Keep the mosaic window on top of other windows.
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
+        # Move the mosaic window to the top-left corner of the screen.
+        cv2.moveWindow(window_name, 0, 0)
+        # Display the mosaic image.
+        im_show_max(mosaic, window_name=window_name, max_resolution=max_resolution)
+        # Resize the window to match the mosaic image's dimensions.
+        cv2.resizeWindow(window_name, width, height)
+        # Wait for a key press to ensure the window remains open.
+        cv2.waitKey(WAIT_TIME)
 
-
+        
+    
 def draw_ellipse_by_factor(image, factor=(0.5, 0.5), color=(255, 255, 255), thickness=-1):
     """
     Draws an ellipse on the image based on specified width and height factors.
