@@ -9,6 +9,28 @@ from PIL import Image as PILImage
 from scipy import ndimage as ndi
 import base64
 
+def set_debug_level(level):
+    """
+    Sets the global DEBUG_LEVEL variable to the specified level.
+
+    Args:
+        level (int): The debug level to set. Use 0 to disable debug messages.
+    """
+    global DEBUG_LEVEL
+    DEBUG_LEVEL = level
+    
+
+def debug_print(*args, **kwargs):
+    """
+    Custom debug_print function that only outputs messages if DEBUG_LEVEL > 0.
+
+    Args:
+        *args: Positional arguments passed to the debug_print function.
+        **kwargs: Keyword arguments passed to the debug_print function.
+    """
+    if DEBUG_LEVEL > 1:
+        print(*args, **kwargs)
+
 def resize_image(image, max_resolution=1200, downscale_factor=0, interpolation=cv2.INTER_AREA):
     """
     Resizes an image while maintaining the aspect ratio.
