@@ -165,24 +165,24 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
              If an error occurs, returns a JSON string with an error message.
     """
     
-    print(f'count_round_objects. version={VERSION}')
+    debug_print(f'count_round_objects. version={VERSION}')
 
     # Ensure that only one of path_image or image64 is provided
     if (path_image == '' and image64 == '') or (path_image != '' and image64 != ''):
-        print('Parameters path_image and image64 are mutually exclusive and mandatory.')
+        debug_print('Parameters path_image and image64 are mutually exclusive and mandatory.')
         return '{"error": "error"}'
 
-    print(f'  json_exif_str={json_exif_str}')
-    print(f'  json_gps_str={json_gps_str}')
+    debug_print(f'  json_exif_str={json_exif_str}')
+    debug_print(f'  json_gps_str={json_gps_str}')
 
     # Load image from Base64 string (suitable for JavaScript, HTML, Ionic)
-    print('Trying to load image')
+    debug_print('Trying to load image')
     if image64 != '':
         try:
             img_IO = PILImage.open(io.BytesIO(base64.b64decode(image64)))
         except:
             error = '{"error": "Error reading image in base64"}'
-            print(error)
+            debug_print(error)
             return error
     # Load image from file path (suitable for Python)
     else:
@@ -190,7 +190,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
             img_IO = PILImage.open(path_image)
         except:
             error = '{"error": "Error reading file ' + path_image + '"}'
-            print(error)
+            debug_print(error)
             return error
 
     img_original = np.array(img_IO)
@@ -199,7 +199,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     # Read EXIF data (GPS, device...)
     result_exif = {}
     if extract_metadata_EXIF(img_IO, result_exif):
-        print(f"    EXIF: coordinates={result_exif.get('coordinates')}, date={result_exif.get('capture_date')}, model={result_exif.get('mobile_model')}, manufacturer={result_exif.get('mobile_manufacturer')}")
+        debug_print(f"    EXIF: coordinates={result_exif.get('coordinates')}, date={result_exif.get('capture_date')}, model={result_exif.get('mobile_model')}, manufacturer={result_exif.get('mobile_manufacturer')}")
         result_json.update(result_exif)
     img_IO.close()
 
@@ -207,20 +207,20 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     directory = path_image.replace(file, '')
 
     #####################################################################################################
-    print(f'0. Loading configuration:')
+    debug_print(f'0. Loading configuration:')
     #####################################################################################################
     # Initialize the static configuration variable on the first call
     if not hasattr(count_round_objects, 'cfg'):
-        print(f'    Loading profile for first time: {profile}')
+        debug_print(f'    Loading profile for first time: {profile}')
         count_round_objects.cfg = load_config(profile)
         
     cfg = count_round_objects.cfg
     if cfg.profile != profile:
-        print(f'    Loading new profile: {profile}')
+        debug_print(f'    Loading new profile: {profile}')
         cfg = load_config(profile)
 
     #####################################################################################################
-    print(f'1. Resize:')
+    debug_print(f'1. Resize:')
     #####################################################################################################
 
     images = [img_original]
@@ -228,20 +228,20 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
     # Crop image to maintain desired aspect ratio
     if cfg.aspect_ratio == 0:
-        print('    Skipping cropping image to aspect ratio.')
+        debug_print('    Skipping cropping image to aspect ratio.')
     else:
-        print(f'    Cropping image to aspect ratio {cfg.aspect_ratio[0]}x{cfg.aspect_ratio[1]}:')
+        debug_print(f'    Cropping image to aspect ratio {cfg.aspect_ratio[0]}x{cfg.aspect_ratio[1]}:')
         img_crop = crop_image_to_aspect_ratio(images[-1], cfg.aspect_ratio)
         if img_original.shape != img_crop.shape:
-            print(f'    Original Size: {images[-1].shape}    New Size: {img_crop.shape}')
+            debug_print(f'    Original Size: {images[-1].shape}    New Size: {img_crop.shape}')
         images.append(img_crop)
 
     # Resize image to maximum resolution
     if cfg.max_resolution == 0:
-        print('    Skipping Resize')
+        debug_print('    Skipping Resize')
     else:
         images.append(resize_image(images[-1], cfg.max_resolution))
-        print(f'    Original Size: {images[-2].shape}    New Size: {images[-1].shape}')
+        debug_print(f'    Original Size: {images[-2].shape}    New Size: {images[-1].shape}')
 
         if DEBUG_LEVEL >= 5:
             show_mosaic([images[-2], images[-1]], headers=['Original', 'Resized'], window_name='Original vs Resized')
@@ -249,7 +249,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     img_reduced = images[-1]
 
     #####################################################################################################
-    print(f'1.1. Smooth color:')
+    debug_print(f'1.1. Smooth color:')
     #####################################################################################################
 
     img_before = images[-1].copy()
@@ -257,29 +257,29 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
     # Apply color smoothing if configured
     if cfg.smooth_colors == 0:
-        print('    Skipping Smooth Color')
+        debug_print('    Skipping Smooth Color')
     else:
         img_tmp = smooth_color(img_tmp, kernel_size=cfg.smooth_colors, min_brightness=20, max_brightness=210)
     
         if DEBUG_LEVEL >= 2:
             show_mosaic([img_before, img_tmp], 
-                        mosaic_dims=(2,1),
+                        mosaic_dims=(1, 2),
                         headers=['Before'],
                         footers=['Smoothed'],
                         window_name=f'Smooth color',
                         max_resolution=800)
-            cv2.waitKey(WAIT_TIME)
+            
             
     img_smooth_color = img_tmp
     images.append(img_tmp)
 
     #####################################################################################################
-    print(f'   Remove Texture 1:')
+    debug_print(f'   Remove Texture 1:')
     #####################################################################################################
 
     # Remove texture using morphological operations if configured
     if cfg.texture_1_kernel_size <= 1:
-        print('   Skipping Texture 1')
+        debug_print('   Skipping Texture 1')
     else:
         img_tmp = images[-1].copy()
         img_after = np.zeros_like(images[-1])
@@ -306,18 +306,18 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
         masks.append(~mask_tmp)
 
     #####################################################################################################
-    print(f'1.2. Amplify Color:')
+    debug_print(f'1.2. Amplify Color:')
     #####################################################################################################
     # Amplify saturation around a specific hue to enhance target objects
     if cfg.color_amplify_range == 0:
-        print('    Skipping Amplify Color')
+        debug_print('    Skipping Amplify Color')
         img_amplified = images[-1].copy()
     else:
         img_tmp = images[-1].copy()
         img_amplified = amplify_saturation_near_hue(img_tmp, cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase)
         if DEBUG_LEVEL >= 4:
             show_mosaic([img_amplified, img_tmp], 
-                        mosaic_dims=(2,1),
+                        mosaic_dims=(1, 2),
                         headers=['Amplified'],
                         footers=['Original'], 
                         window_name='Amplify Saturation',
@@ -326,7 +326,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
         images.append(img_amplified)  
 
     #####################################################################################################
-    print(f'2. Blur:')
+    debug_print(f'2. Blur:')
     #####################################################################################################
 
     img_tmp = images[-1].copy()
@@ -352,11 +352,11 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     img_blur = img_tmp.copy()
     del img_tmp
 
-    print(f'   Remove Texture 2:')
+    debug_print(f'   Remove Texture 2:')
 
     # Remove additional texture layers if configured
     if cfg.texture_2_kernel_size <= 1:
-        print('   Skipping Texture 2')
+        debug_print('   Skipping Texture 2')
     else:
         img_tmp = images[-1].copy()
         img_after = np.zeros_like(images[-1])
@@ -384,7 +384,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
 
     #####################################################################################################
-    print(f'3. Select Foreground')
+    debug_print(f'3. Select Foreground')
     #####################################################################################################
 
     img_before = images[-1].copy()
@@ -415,7 +415,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
                                                             color_space=color_space)
             if DEBUG_LEVEL >= 4:
                     show_mosaic([selected_area, discarded_area, mask_selected], 
-                                mosaic_dims=(3,1),
+                                mosaic_dims=(1, 3),
                                 headers=['Selected'],
                                 footers=['Mask/Discarded'],
                                 window_name=f'Foreground Color Selection {cfg.foreground_name}',
@@ -425,7 +425,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
             mask_tmp += np.where(mask_selected > 0, cfg.foreground_weight, 0)
 
             del selected_area, discarded_area, mask_selected
-        print('    .')
+        debug_print('    .')
 
     # Create a binary foreground mask
     mask_foreground = np.where(mask_tmp >= 1, 255, 0).astype('uint8')
@@ -439,18 +439,18 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     
     if DEBUG_LEVEL >= 3:
         show_mosaic([img_foreground, img_background], 
-                    mosaic_dims=(2,1),
+                    mosaic_dims=(1, 2),
                     headers=['Selected'], 
                     footers=['Discarded'], 
                     window_name='Result Foreground',
                     max_resolution=800)
-        cv2.waitKey(WAIT_TIME)
+        
 
-    print(f'   Remove Texture 3:')
+    debug_print(f'   Remove Texture 3:')
 
     # Remove further texture layers if configured
     if cfg.texture_3_kernel_size <= 1:
-        print('   Skipping Texture 3')
+        debug_print('   Skipping Texture 3')
     else:
         img_tmp = images[-1].copy()
         img_after = np.zeros_like(images[-1])
@@ -490,13 +490,13 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
                         mosaic_dims=(2,2),
                         window_name='Foreground',
                         max_resolution=800)
-            cv2.waitKey(WAIT_TIME)
+            
 
-    print(f'3.1. Quantization:')
+    debug_print(f'3.1. Quantization:')
 
     # Apply K-Means color quantization if configured
     if cfg.quantization_n_colors == 0:
-        print('    Skipping Quantization')
+        debug_print('    Skipping Quantization')
     else:
         img_tmp = images[-1].copy()
 
@@ -507,17 +507,17 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
         if DEBUG_LEVEL >= 2:
             show_mosaic([recolored_image, clustered_rgb, img_tmp], 
-                        mosaic_dims=(3,1),
-                        headers=['Recolored'],
+                        mosaic_dims=(1, 3),
+                        headers=['K-Means Recolored'],
                         footers=['Original'], 
                         window_name='Quantization',
                         max_resolution=800)
-            cv2.waitKey(WAIT_TIME)
+            
 
     img_foreground = images[-1].copy()
                     
     #####################################################################################################
-    print(f'4. Select object:')
+    debug_print(f'4. Select object:')
     #####################################################################################################
 
     img_before = images[-1].copy()
@@ -559,14 +559,14 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
                     show_mosaic([mask_selected, mask_certainly_object], 
                                 headers=['Selected Now'],
                                 footers=['Added to Certainly Object'],
-                                mosaic_dims=(2, 1), 
+                                mosaic_dims=(1, 2), 
                                 window_name='Mask Certainly Object', 
                                 max_resolution=800)
-                    cv2.waitKey(WAIT_TIME)
+                    
             
             if DEBUG_LEVEL >= 4:
                 show_mosaic([selected_area, discarded_area, mask_selected], 
-                            mosaic_dims=(3,1),
+                            mosaic_dims=(1, 3),
                             headers=['Selected'],
                             footers=['Mask/Discarded'],
                             window_name=f'Color Selection {cfg.color_name}',
@@ -577,14 +577,14 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
             del selected_area, discarded_area, mask_selected
 
-        print('    .')
+        debug_print('    .')
 
     # Normalize the mask to grayscale
     mask_grayscale = cv2.normalize(mask_tmp, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
 
     if DEBUG_LEVEL >= 3:
         show_mosaic([mask_grayscale, img_before], 
-                    mosaic_dims=(2,1),
+                    mosaic_dims=(1, 2),
                     headers=['Mask Fruit'], 
                     footers=['Original'], 
                     window_name='Preview Filter color',
@@ -602,7 +602,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
                     mosaic_dims=(2,2),
                     window_name='Objects',
                     max_resolution=800)
-        cv2.waitKey(WAIT_TIME)
+        
     
     # Separate selected and discarded areas
     img_fruit = cv2.bitwise_and(img_before, img_before, mask=mask_objects)
@@ -612,17 +612,17 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     
     if DEBUG_LEVEL >= 3:
         show_mosaic([img_fruit, img_discarded], 
-                    mosaic_dims=(2,1),
+                    mosaic_dims=(1, 2),
                     headers=['Selected'], 
                     footers=['Discarded'], 
                     window_name='Result Filter Color',
                     max_resolution=800)
 
-    print(f'   Remove Texture 4:')
+    debug_print(f'   Remove Texture 4:')
 
     # Final texture removal layer if configured
     if cfg.texture_4_kernel_size <= 1:
-        print('   Skipping Texture 4')
+        debug_print('   Skipping Texture 4')
     else:
         img_tmp = images[-1].copy()
         img_after = np.zeros_like(images[-1])
@@ -649,7 +649,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
         masks.append(~mask_tmp)
 
     #####################################################################################################
-    print(f'6. Blur mask:')
+    debug_print(f'6. Blur mask:')
     #####################################################################################################
 
     img_tmp = images[-1].copy()
@@ -677,22 +677,20 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
         show_mosaic([img_before, img_blur, img_contrast], 
                     window_name='Blur and contrast mask', 
                     headers=['Original'],
-                    footers=['Improved contrast'], mosaic_dims=(3, 1), max_resolution=600)
-        cv2.waitKey(WAIT_TIME)
+                    footers=['Improved contrast'], mosaic_dims=(1, 3), max_resolution=600)
+        
 
     images.append(img_contrast)
-
+    
 
     #####################################################################################################
-    print(f'6.1. Fill holes:')
+    debug_print(f'6.1. Fill holes:')
     #####################################################################################################
 
     img_tmp = images[-1].copy()
     img_before = img_tmp
-
     img_tmp = fill_holes_with_gray(img_tmp, 100);
-
-
+    
     if DEBUG_LEVEL >= 3:
         show_mosaic([img_before, img_tmp], 
                     window_name='Fill Holes', 
@@ -702,10 +700,10 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
     img_preprocess = img_tmp
     images.append(img_preprocess)
-    
+
     
     #####################################################################################################
-    print(f'7. Detect Circles:')
+    debug_print(f'7. Detect Circles:')
     #####################################################################################################
 
     # Interactive tuning of circle detection parameters if in debug mode
@@ -737,7 +735,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     num_circles = len(circles)
 
     #####################################################################################################
-    print("8. Final Result")
+    debug_print("8. Final Result")
     #####################################################################################################
 
     # Draw detected circles on the original smoothed color image
@@ -747,8 +745,8 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     num_found_objects = num_circles
 
     try:
-        # Extract expected number of objects from filename, assuming it's enclosed in brackets
-        num_expected_objects = int(file[file.find("[") + 1:file.find("]")])
+        # Extract expected number of objects from filename
+        num_expected_objects = int(file[file.find("_gt") + 3:file.rfind(".")])
         accuracy = 100 * num_found_objects / num_expected_objects
         filename_result = f"{file}_result_pd=[{num_found_objects}]acc=[{accuracy:.1f}pct].jpg"
         header_image = f"    Found={num_found_objects} objects     Expected={num_expected_objects}    Accuracy={accuracy:.1f}%"
@@ -761,7 +759,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     header_image += f"    Filename={file}" if file != '' else ''
     
     filename_pre_process = f"{file}_pre.jpg"
-    print(header_image)
+    debug_print(header_image)
     
     # Prepare footer with EXIF data or GPS coordinates
     if len(result_exif) > 0:
@@ -773,11 +771,11 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
             data = json.loads(json_gps_str)
             footer_image = f"Latitude: {data['latitude']}, Longitude: {data['longitude']}"
         except json.JSONDecodeError as e:
-            print(f"Error decoding JSON string: {e}")
+            debug_print(f"Error decoding JSON string: {e}")
         except KeyError as e:
-            print(f"Key not found in JSON data: {e}")
+            debug_print(f"Key not found in JSON data: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            debug_print(f"An error occurred: {e}")
 
     # Build final mosaic image with report if configured
     if PRINT_REPORT_ON_IMAGE:
@@ -792,14 +790,14 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     else:
         final_mosaic = img_final
 
-    if DEBUG_LEVEL >= 1:
-        print(f"Final Result:")
-        show_mosaic([img_preprocess, final_mosaic], window_name='Final Result', mosaic_dims=(2, 1), max_resolution=800)
-        cv2.waitKey(WAIT_TIME)
+    if DEBUG_LEVEL >= 0:
+        debug_print(f"Final Result:")
+        show_mosaic([img_preprocess, final_mosaic], window_name='Final Result', mosaic_dims=(1, 2), max_resolution=800)
+        
 
     
     #####################################################################################################
-    print(f'9. Saving files')
+    debug_print(f'9. Saving files')
     #####################################################################################################
 
     # Save the final result image
@@ -810,57 +808,57 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     
     # Resize the original image for return
     image_original_reduced = resize_image(img_original, cfg.resolution_returned)
-    print(f'    Original Image Reduced: {img_original.shape}    New Size: {image_original_reduced.shape}')
+    debug_print(f'    Original Image Reduced: {img_original.shape}    New Size: {image_original_reduced.shape}')
 
 
     #####################################################################################################
-    print(f'Print configuration')
+    debug_print(f'Print configuration')
     #####################################################################################################
 
-    print('\n\n')
+    debug_print('\n\n')
 
     if DEBUG_LEVEL >= 1 and BATCH_MODE is False:
-        print(f"        \n        # Profile:", cfg.profile)
-        print(f"        # Quality:")
-        print(f"        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}")
-        print(f"        ")
-        print(f"        # Blur:")
-        print(f"        cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = {cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size}")
-        print(f"        ")
+        debug_print(f"        \n        # Profile:", cfg.profile)
+        debug_print(f"        # Quality:")
+        debug_print(f"        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}")
+        debug_print(f"        ")
+        debug_print(f"        # Blur:")
+        debug_print(f"        cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = {cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size}")
+        debug_print(f"        ")
 
-        print(f"        # Amplify Saturation:")
-        print(f"        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = {cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase}")
-        print(f"        ")
+        debug_print(f"        # Amplify Saturation:")
+        debug_print(f"        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = {cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase}")
+        debug_print(f"        ")
 
-        print(f"        # Foreground selection:")
+        debug_print(f"        # Foreground selection:")
         for i in cfg.foreground_list:
-            print(f"        cfg.foreground_list.append({i})")
-        print(f"        ")
+            debug_print(f"        cfg.foreground_list.append({i})")
+        debug_print(f"        ")
 
-        print(f"        # Texture Removal:")
+        debug_print(f"        # Texture Removal:")
         try:
-            print(f"        cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = {cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it}")
-            print(f"        cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = {cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it}")
-            print(f"        cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = {cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it}")
-            print(f"        cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = {cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it}")
+            debug_print(f"        cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = {cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it}")
+            debug_print(f"        cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = {cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it}")
+            debug_print(f"        cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = {cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it}")
+            debug_print(f"        cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = {cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it}")
         except:
             pass
-        print(f"        ")
+        debug_print(f"        ")
 
-        print(f"        # Object Selection")
+        debug_print(f"        # Object Selection")
         for i in cfg.color_list:
-            print(f"        cfg.color_list.append({i})")
-        print(f"        cfg.smooth_mask_certain =  {cfg.smooth_mask_certain}")
-        print(f"        ")
+            debug_print(f"        cfg.color_list.append({i})")
+        debug_print(f"        cfg.smooth_mask_certain =  {cfg.smooth_mask_certain}")
+        debug_print(f"        ")
 
-        print(f"        # Circle Detection:")
-        print(f"        cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = {cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio}")
-        print(f"        cfg.circle_minArea, cfg.circle_maxArea =  {cfg.circle_minArea, cfg.circle_maxArea}")
-        print(f"        cfg.min_radius_circle, cfg.tolerance_overlap =  {cfg.min_radius_circle, cfg.tolerance_overlap}")
-        print(f"        \n\n")        
+        debug_print(f"        # Circle Detection:")
+        debug_print(f"        cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = {cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio}")
+        debug_print(f"        cfg.circle_minArea, cfg.circle_maxArea =  {cfg.circle_minArea, cfg.circle_maxArea}")
+        debug_print(f"        cfg.min_radius_circle, cfg.tolerance_overlap =  {cfg.min_radius_circle, cfg.tolerance_overlap}")
+        debug_print(f"        \n\n")        
 
     #####################################################################################################
-    print("10. Calculating Result JSON:")
+    debug_print("10. Calculating Result JSON:")
     #####################################################################################################
 
     # Read EXIF data again (if needed)
@@ -874,9 +872,6 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     num_found_objects = num_circles
     report = f"Found {num_found_objects} objects"
     result_json['qt_objects'] = num_found_objects
-    result_json['qt_objects_small'] = 0
-    result_json['qt_objects_normal'] = num_found_objects
-    result_json['qt_objects_big'] = 0
     if accuracy > 0:
         result_json['accuracy'] = accuracy
         result_json['expected_objects'] = num_expected_objects
@@ -884,11 +879,9 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     # Format the result into a comprehensive JSON
     result_json = format_result(imagen_cv2=final_mosaic, imagen_cv2_original_reduced=image_original_reduced, result=result_json)
 
-    print('End of count_round_objects.\n')
+    debug_print('End of count_round_objects.\n')
 
     return result_json
-    
-
 
 
 
@@ -923,29 +916,31 @@ def display_results(result_json):
         result_dict = json.loads(result_json)
 
         if "error" in result_dict:
-            print(result_dict["error"])
+            debug_print(result_dict["error"])
 
         if "json" in result_dict:
-            print(result_dict["json"])
+            debug_print(result_dict["json"])
 
         if "image64" in result_dict:
-            print('image64 =', result_dict["image64"][:100])
+            debug_print('image64 =', result_dict["image64"][:100])
             img_result_cv2 = np.array(PILImage.open(io.BytesIO(base64.b64decode(result_dict["image64"]))))
             img_result_cv2 = cv2.cvtColor(img_result_cv2, cv2.COLOR_BGR2RGB)
 
 
         if "image64_original_reduced" in result_dict:
-            print('image64_original_reduced =', result_dict["image64_original_reduced"][:100])
+            debug_print('image64_original_reduced =', result_dict["image64_original_reduced"][:100])
             img_result_original_reduced_cv2 = np.array(PILImage.open(io.BytesIO(base64.b64decode(result_dict["image64_original_reduced"]))))
             img_result_original_reduced_cv2 = cv2.cvtColor(img_result_original_reduced_cv2, cv2.COLOR_BGR2RGB)
 
         if "text" in result_dict:
-            print(result_dict["text"])
+            debug_print(result_dict["text"])
 
     else:
-        print('Error in result')
+        debug_print('Error in result')
+
 
     return result_dict
+
 
 
 def format_result(imagen_cv2, imagen_cv2_original_reduced, result):
@@ -1078,25 +1073,25 @@ def test_directory(directory, profile, specific_files=[], limit_files=0):
         # Process each image
         for file in files:
             
-            print(f'>>>>> Image: {file}')
+            debug_print(f'>>>>> Image: {file}')
             path_image = os.path.join(directory, file)
 
-            print(f'Looking for previous analysis:')
+            debug_print(f'Looking for previous analysis:')
             # Skip files that are result or pre-processed images
             if '_result' in file or '_pre.' in file:
-                print(f'Deleting previous analysis: {file}')
+                debug_print(f'Deleting previous analysis: {file}')
 
                 try:
                     # Construct the full file path
                     file_path = os.path.join(directory, file)
                     # Delete the file
                     os.remove(file_path)
-                    print(f"Deleted previous analysis.")
+                    debug_print(f"Deleted previous analysis.")
                 except Exception as e:
-                    print(f"Error Deleting previous analysis {file}: {e}")
+                    debug_print(f"Error Deleting previous analysis {file}: {e}")
                 pbar.total -= 1
             else:                
-                print(f'Processing image: {file}')
+                debug_print(f'Processing image: {file}')
                 pbar.update(1)
 
                 # Count round objects in the image
@@ -1118,7 +1113,7 @@ def test_directory(directory, profile, specific_files=[], limit_files=0):
             accuracy_sumary += f'\nNo images found. Average Accuracy of {profile}: 0.0% out of 0 images'
         else:
             accuracy_sumary += f'\nAverage Error of {profile}: {np.mean(np.abs(accuracies_calc-100)):.1f}% out of {len(accuracies_calc)} images'
-        print(accuracy_sumary)
+        debug_print(accuracy_sumary)
 
         pbar.close()
 
