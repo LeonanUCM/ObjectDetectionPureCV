@@ -3,14 +3,49 @@
 
 def load_config(profile):
     class Config:
+        def as_text(cfg):
+            print(f"\n# Profile:", cfg.profile)
+            print(f"# Quality:")
+            print(f"cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}")
+
+            print(f"\n# Blur:")
+            print(f"cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = {cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size}")
+
+            print(f"\n# Amplify Saturation:")
+            print(f"cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = {cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase}")
+
+            print(f"\n# Foreground selection:")
+            for i in cfg.foreground_list:
+                print(f"cfg.foreground_list.append({i})")
+
+                print(f"\n# Texture Removal:")
+                try:
+                    print(f"cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = {cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it}")
+                    print(f"cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = {cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it}")
+                    print(f"cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = {cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it}")
+                    print(f"cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = {cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it}")
+                except:
+                    pass
+
+            print(f"\n# Object Selection")
+
+            for i in cfg.color_list:
+                print(f"cfg.color_list.append({i})")
+
+            print(f"cfg.smooth_mask_certain =  {cfg.smooth_mask_certain}")
+
+            print(f"\n# Circle Detection:")
+            print(f"cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = {cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio}")
+            print(f"cfg.circle_minArea, cfg.circle_maxArea =  {cfg.circle_minArea, cfg.circle_maxArea}")
+            print(f"cfg.min_radius_circle, cfg.tolerance_overlap =  {cfg.min_radius_circle, cfg.tolerance_overlap}")
         pass
 
     cfg = Config()
 
     cfg.profile = profile
 
-    assert profile in ['ORANGE ', 'ORANGE ', 'APPLE ', 'APPLE ', 'YELLOW_PEACH ', 'YELLOW_PEACH ', 'RED_PEACH ', 'RED_PEACH '], \
-    "Profile must be one of: 'ORANGE ', 'ORANGE ', 'APPLE ', 'APPLE ', 'YELLOW_PEACH ', 'YELLOW_PEACH ', 'RED_PEACH ', 'RED_PEACH "
+    assert profile in ['ORANGE', 'ORANGE', 'APPLE', 'APPLE', 'YELLOW_PEACH', 'YELLOW_PEACH', 'RED_PEACH', 'RED_PEACH'], \
+    "Profile must be one of: 'ORANGE', 'ORANGE', 'APPLE', 'APPLE', 'YELLOW_PEACH', 'YELLOW_PEACH', 'RED_PEACH', 'RED_PEACH'"
 
     # Default configuration valid for all profiles, 
     # but can be redefined in the profile specific configuration
@@ -104,7 +139,7 @@ def load_config(profile):
     elif (cfg.profile == 'YELLOW_PEACH '):
         # Profile: YELLOW_PEACH 
         # Quality:
-        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (0, 1536, 19, 0.98)
+        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (16, 1536, 19, 0.98)
 
         # Blur:
         cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = (5, 2.5, 5, 5)

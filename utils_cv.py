@@ -1195,7 +1195,7 @@ def get_exif_data(image):
     try:
         # Retrieve EXIF information from the image.
         if info := image._getexif():
-            debug_print(f'EXIF={info}')
+            debug_print(f'EXIF={info}', 2)
             for tag, value in info.items():
                 decoded = EXIF.TAGS.get(tag, tag)
                 if decoded == "GPSInfo":
