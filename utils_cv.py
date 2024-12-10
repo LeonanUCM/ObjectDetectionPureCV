@@ -3301,7 +3301,7 @@ def count_fruits(directory, file_name, cfg):
                 max_resolution=2000)
 
 
-def test_directory(directory, specific_files=[], cfg, limit_files=0):
+def test_directory(directory, cfg, specific_files=[], limit_files=0):
     """
     Tests the object counting process on a directory of images, optionally filtering specific files or limiting the number of files processed.
 
