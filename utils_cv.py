@@ -862,13 +862,8 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
 
             img_gray_inverted = blur_image(img_gray_inverted, kernel_size=13, sigmaX=0)
 
-        #im_show_max(mask, window_name="Mask Final", max_resolution=400)
         last_circles = circles
         circles_result += circles
-        
-        show_mosaic([img_filled, img_delimited], 
-            window_name='Circles Detection', 
-            headers=['Mask', 'Delimited image'])
         
     debug_print(f"    {len(circles_result)} circles detected before remove overlap.")
     circles_result, discarded_circles = remove_overlapping_circles(circles_result, tolerance=tolerance_overlap)
