@@ -1033,6 +1033,32 @@ def set_maximum_radius_circle(circles, max_radius_circle):
     """
     return [(center, radius if radius <= max_radius_circle else max_radius_circle) for center, radius in circles]
 
+
+def normalize_mask_to_uin8(mask):
+    """
+    Normalize an int8 mask to uint8 with values mapped to [0, 255],
+    ensuring 0 maps to 127.
+
+    Args:
+        mask (np.ndarray): Input mask with dtype=int8 and values in [-128, 127].
+
+    Returns:
+        np.ndarray: Normalized mask with dtype=uint8 and values in [0, 255].
+    """
+    assert mask.dtype == np.int8, "Input mask must have dtype int8."
+
+    min_val = np.min(mask)  # Minimum value in the mask
+    max_val = np.max(mask)  # Maximum value in the mask
+
+    # Normalize mask such that 0 maps to 127, range is [0, 255]
+    normalized = 127 + ((mask - 0) / (max_val - min_val) * 127)
+
+    # Clip values to [0, 255] and convert to uint8
+    normalized = np.clip(normalized, 0, 255).astype(np.uint8)
+    
+    return normalized
+
+
 def range_hue_and_normalize(array_channel, low_bound=10, high_bound=30):
     """
     Filters and normalizes hue values within a specified range in a hue channel image.
