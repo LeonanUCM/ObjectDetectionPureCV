@@ -85,7 +85,7 @@ def load_config(profile):
 
 
     # Load configuration depending on the cfg.profile
-    if (cfg.profile == 'ORANGE '):
+    if (cfg.profile == 'ORANGE'):
         # Profile: ORANGE 
         # Quality:
         cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (0, 1536, 0, 1.05)
@@ -119,7 +119,7 @@ def load_config(profile):
         cfg.circle_minArea, cfg.circle_maxArea =  (710, 12150)
         cfg.min_radius_circle, cfg.tolerance_overlap =  (34, 0.3)
 
-    elif (cfg.profile == 'APPLE '):
+    elif (cfg.profile == 'APPLE'):
         # Profile: APPLE 
         # Quality:
         cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (0, 1536, 19, 0.98)
@@ -153,7 +153,7 @@ def load_config(profile):
         cfg.circle_minArea, cfg.circle_maxArea =  (920, 12150)
         cfg.min_radius_circle, cfg.tolerance_overlap =  (34, 0.2)
 
-    elif (cfg.profile == 'YELLOW_PEACH '):
+    elif (cfg.profile == 'YELLOW_PEACH'):
         # Profile: YELLOW_PEACH 
         # Quality:
         cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (16, 1536, 19, 0.98)
@@ -187,7 +187,7 @@ def load_config(profile):
         cfg.circle_minArea, cfg.circle_maxArea =  (1110, 12380)
         cfg.min_radius_circle, cfg.tolerance_overlap =  (34, 0.1)
       
-    elif (cfg.profile == 'RED_PEACH '):
+    elif (cfg.profile == 'RED_PEACH'):
         # Profile: RED_PEACH 
         # Quality:
         cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (0, 1536, 19, 0.98)        
