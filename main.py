@@ -68,18 +68,12 @@ import random
 from PIL import Image as PILImage
 import io, base64, json
 import numpy as np
-
-BATCH_MODE = True
-PRINT_REPORT_ON_IMAGE = True
-
-VERSION='2024/dec/03 2.5m'
-
+import config_profiles
 from utils_cv import *
-from config_profiles import *
 
 
 # Configure debugging levels and wait times based on batch mode and debug status
-if BATCH_MODE:
+if config_profiles.BATCH_MODE:
     DEBUG_LEVEL = 0
     WAIT_TIME = 1
     TUNNING_BLUR = TUNNING_TEXTURE = TUNNING_FOREGROUND = TUNNING_OBJECT = TUNNING_CIRCLES = False
@@ -165,7 +159,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
              If an error occurs, returns a JSON string with an error message.
     """
     
-    debug_print(f'count_round_objects. version={VERSION}')
+    debug_print(f'count_round_objects. version={config_profiles.VERSION}')
 
     # Ensure that only one of path_image or image64 is provided
     if (path_image == '' and image64 == '') or (path_image != '' and image64 != ''):
@@ -212,12 +206,12 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     # Initialize the static configuration variable on the first call
     if not hasattr(count_round_objects, 'cfg'):
         debug_print(f'    Loading profile for first time: {profile}')
-        count_round_objects.cfg = load_config(profile)
+        count_round_objects.cfg = config_profiles.load_config(profile)
         
     cfg = count_round_objects.cfg
     if cfg.profile != profile:
         debug_print(f'    Loading new profile: {profile}')
-        cfg = load_config(profile)
+        cfg = config_profiles.load_config(profile)
 
     #####################################################################################################
     debug_print(f'1. Resize:')
@@ -778,7 +772,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
             debug_print(f"An error occurred: {e}")
 
     # Build final mosaic image with report if configured
-    if PRINT_REPORT_ON_IMAGE:
+    if config_profiles.PRINT_REPORT_ON_IMAGE:
         final_mosaic = build_mosaic([img_final],
                     headers=[header_image],
                     footers=[footer_image],
@@ -790,7 +784,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     else:
         final_mosaic = img_final
 
-    if DEBUG_LEVEL >= 0:
+    if config_profiles.DEBUG_LEVEL >= 0:
         debug_print(f"Final Result:")
         show_mosaic([img_preprocess, final_mosaic], window_name='Final Result', mosaic_dims=(1, 2), max_resolution=800)
         
@@ -817,7 +811,7 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
 
     debug_print('\n\n')
 
-    if DEBUG_LEVEL >= 1 and BATCH_MODE is False:
+    if config_profiles.DEBUG_LEVEL >= 1 and config_profiles.BATCH_MODE is False:
         debug_print(f"        \n        # Profile:", cfg.profile)
         debug_print(f"        # Quality:")
         debug_print(f"        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}")
@@ -1118,3 +1112,5 @@ def test_directory(directory, profile, specific_files=[], limit_files=0):
         pbar.close()
 
     return accuracy_sumary
+
+
