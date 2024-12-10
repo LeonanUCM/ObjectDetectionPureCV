@@ -107,7 +107,7 @@ def load_config(profile):
         # Foreground selection:
         cfg.foreground_list.append([['Foreground Green', -1], [60, 20, 20, 316, 100, 100, 1, 15, 1, 1]])
         cfg.foreground_list.append([['Foreground Brown', -1], [0, 3, 8, 32, 39, 85, 1, 19, 1, 1]])
-        cfg.foreground_list.append([['Foreground Probrably', 1], [5, 39, 29, 61, 100, 100, 43, 9, 5, 1]])
+        cfg.foreground_list.append([['Foreground Probably', 1], [5, 39, 29, 61, 100, 100, 43, 9, 5, 1]])
         cfg.foreground_list.append([['Foreground Certainly', 2], [18, 60, 60, 49, 100, 100, 47, 3, 1, 1]])
 
         # Texture Removal:
@@ -118,7 +118,7 @@ def load_config(profile):
 
         # Object Selection
         cfg.color_list.append([['Object Low Intensity and Sat', -1], [40, 0, 0, 23, 40, 80, 7, 11, 1, 1]])
-        cfg.color_list.append([['Object Probrably', 1], [16, 30, 35, 65, 100, 100, 25, 3, 3, 1]])
+        cfg.color_list.append([['Object Probably', 1], [16, 30, 35, 65, 100, 100, 25, 3, 3, 1]])
         cfg.color_list.append([['Object Certainly', 2], [16, 60, 70, 65, 100, 100, 33, 3, 3, 1]])
         cfg.smooth_mask_certain =  0
 
@@ -141,7 +141,7 @@ def load_config(profile):
         # Foreground selection:
         cfg.foreground_list.append([['Foreground Green', -1], [87, 20, 20, 316, 100, 100, 5, 11, 1, 1]])
         cfg.foreground_list.append([['Foreground Brown', -1], [325, 3, 5, 53, 41, 85, 3, 19, 1, 1]])
-        cfg.foreground_list.append([['Foreground Probrably', 1], [50, 30, 40, 89, 100, 100, 31, 21, 7, 1]])
+        cfg.foreground_list.append([['Foreground Probably', 1], [50, 30, 40, 89, 100, 100, 31, 21, 7, 1]])
         cfg.foreground_list.append([['Foreground Certainly', 2], [61, 45, 50, 76, 100, 100, 41, 43, 7, 1]])
 
         # Texture Removal:
@@ -152,7 +152,7 @@ def load_config(profile):
 
         # Object Selection
         cfg.color_list.append([['Object Low Intensity and Sat', -1], [0, 0, 0, 359, 50, 66, 1, 3, 1, 2]])
-        cfg.color_list.append([['Object Probrably', 1], [41, 29, 36, 78, 100, 100, 39, 17, 1, 1]])
+        cfg.color_list.append([['Object Probably', 1], [41, 29, 36, 78, 100, 100, 39, 17, 1, 1]])
         cfg.color_list.append([['Object Certainly', 2], [56, 40, 75, 70, 100, 100, 27, 47, 7, 1]])
         cfg.smooth_mask_certain = 15
 
@@ -164,36 +164,35 @@ def load_config(profile):
     elif (cfg.profile == 'YELLOW_PEACH'):
         # Profile: YELLOW_PEACH 
         # Quality:
-        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (16, 1536, 19, 0.98)
+        cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = (3, 1536, 19, 0.98)
 
         # Blur:
         cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = (5, 2.5, 5, 5)
 
         # Amplify Saturation:
-        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (51, 10, 15)
+        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (40, 5, 3)
 
         # Foreground selection:
-        cfg.foreground_list.append([['Foreground Green', -1], [70, 30, 20, 316, 100, 100, 3, 15, 1, 1]])
-        cfg.foreground_list.append([['Foreground Brown', -1], [0, 3, 8, 32, 39, 85, 1, 15, 1, 1]])
-        cfg.foreground_list.append([['Foreground Probrably', 1], [36, 32, 37, 66, 100, 100, 27, 19, 11, 1]])
-        cfg.foreground_list.append([['Foreground Certainly', 2], [27, 60, 60, 50, 100, 100, 37, 17, 5, 1]])
+        cfg.foreground_list.append([['Foreground Green', -1], [70, 30, 20, 316, 100, 100, 3, 21, 11, 1]])
+        cfg.foreground_list.append([['Foreground Brown', -1], [0, 3, 8, 32, 39, 85, 1, 21, 11, 1]])
+        cfg.foreground_list.append([['Foreground Probably', 1], [36, 32, 37, 66, 100, 100, 27, 19, -31, 1]])
+        cfg.foreground_list.append([['Foreground Certainly', 2], [27, 60, 60, 50, 100, 100, 37, 17, -25, 1]])
 
         # Texture Removal:
         cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = (29, 5, 1, 3, 1)    
-        cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = (3, 11, 3, 3, 1)    
-        cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = (5, 9, 1, 1, 0)     
-        cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = (1, 0, 1, 1, 0)     
 
         # Object Selection
+        cfg.color_list=[]
         cfg.color_list.append([['Object Low Intensity and Sat', -1], [40, 0, 0, 23, 30, 80, 5, 7, 1, 1]])
-        cfg.color_list.append([['Object Probrably', 1], [16, 30, 35, 65, 100, 100, 25, 3, 3, 1]])
-        cfg.color_list.append([['Object Certainly', 2], [16, 53, 35, 65, 100, 100, 25, 3, 3, 1]])
+        cfg.color_list.append([['Object Probably', 1], [16, 30, 35, 65, 100, 100, 25, -13, -23, 1]])
+        cfg.color_list.append([['Object Certainly', 2], [16, 40, 35, 65, 100, 100, 25, -15, -23, 2]])
         cfg.smooth_mask_certain = 15
+
 
         # Circle Detection:
         cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = (0.4, 0.4, 0.5)
         cfg.circle_minArea, cfg.circle_maxArea =  (1110, 12380)
-        cfg.min_radius_circle, cfg.tolerance_overlap =  (34, 0.1)
+        cfg.min_radius_circle, cfg.tolerance_overlap =  (23, 0.1)
       
     elif (cfg.profile == 'RED_PEACH'):
         # Profile: RED_PEACH 
@@ -219,8 +218,8 @@ def load_config(profile):
 
         # Object Selection
         cfg.color_list.append([['Object Low Intensity and Sat', -3], [353, 0, 0, 30, 22, 75, 5, 7, 1, 1]])
-        cfg.color_list.append([['Object Probrably Red', 1], [196, 20, 35, 17, 100, 100, 25, 21, 3, 1]])
-        cfg.color_list.append([['Object Probrably Yellow', 1], [15, 20, 35, 70, 100, 100, 33, 21, 3, 1]])
+        cfg.color_list.append([['Object Probably Red', 1], [196, 20, 35, 17, 100, 100, 25, 21, 3, 1]])
+        cfg.color_list.append([['Object Probably Yellow', 1], [15, 20, 35, 70, 100, 100, 33, 21, 3, 1]])
         cfg.color_list.append([['Object Certainly Red', 2], [305, 37, 45, 20, 100, 100, 23, 17, 3, 1]])
         cfg.color_list.append([['Object Certainly Yelow', 2], [15, 53, 57, 60, 100, 100, 21, 21, 3, 1]])
         cfg.smooth_mask_certain =  15
