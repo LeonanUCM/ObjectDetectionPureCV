@@ -858,7 +858,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
 
             for circle in last_circles:
                 (x, y), radius = circle
-                cv2.circle(img_gray_inverted, (x, y), radius, 220 - turn * 20, thickness=-1)
+                cv2.circle(img_gray_inverted, (x, y), radius, 220 - turn * 10, thickness=-1)
 
             img_gray_inverted = blur_image(img_gray_inverted, kernel_size=13, sigmaX=0)
 
@@ -1210,7 +1210,7 @@ def get_exif_data(image):
     try:
         # Retrieve EXIF information from the image.
         if info := image._getexif():
-            debug_print(f'EXIF={info}', 2)
+            #debug_print(f'EXIF={info}', 2)
             for tag, value in info.items():
                 decoded = EXIF.TAGS.get(tag, tag)
                 if decoded == "GPSInfo":

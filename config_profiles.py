@@ -170,8 +170,8 @@ def load_config(profile):
         cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = (5, 2.5, 5, 5)
 
         # Amplify Saturation:
-        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (40, 5, 3)
-
+        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (50, 5, 10)
+        
         # Foreground selection:
         cfg.foreground_list.append([['Foreground Green', -1], [70, 30, 20, 316, 100, 100, 3, 21, 11, 1]])
         cfg.foreground_list.append([['Foreground Brown', -1], [0, 3, 8, 32, 39, 85, 1, 21, 11, 1]])
