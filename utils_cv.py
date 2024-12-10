@@ -3089,7 +3089,7 @@ def convert_grabCut2heatmap(mask_GrabCut):
     return heat_map
 
 
-def count_fruits(directory, file_name):
+def count_fruits(directory, file_name, cfg):
     path_image = os.path.join(directory, file_name)
 
     # 2.1. Image loading
@@ -3301,7 +3301,7 @@ def count_fruits(directory, file_name):
                 max_resolution=2000)
 
 
-def test_directory(directory, specific_files=[], limit_files=0):
+def test_directory(directory, specific_files=[], cfg, limit_files=0):
     """
     Tests the object counting process on a directory of images, optionally filtering specific files or limiting the number of files processed.
 
@@ -3332,7 +3332,7 @@ def test_directory(directory, specific_files=[], limit_files=0):
             
             print(f'File: {file}')
 
-            result_image = count_fruits(directory, file)
+            result_image = count_fruits(directory, file, cfg)
             result_images.append(result_image)
             save_image(result_image, f'/kaggle/working/{file}')
             pbar.update(1)
