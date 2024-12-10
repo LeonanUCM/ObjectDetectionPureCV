@@ -21,41 +21,49 @@ def set_print_report_on_image(mode=True):
 def load_config(profile):
     class Config:
         def as_text(cfg):
-            print(f"\n# Profile:", cfg.profile)
-            print(f"# Quality:")
-            print(f"cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}")
+            cfg_text = ""
+            cfg_text += f"\n\n# Profile: {cfg.profile}"
+            cfg_text += f"\n# Quality:"
+            cfg_text += f"\ncfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast = {cfg.quantization_n_colors, cfg.max_resolution, cfg.smooth_colors, cfg.factor_contrast}"
 
-            print(f"\n# Blur:")
-            print(f"cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = {cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size}")
+            cfg_text += f"\n\n# Blur:"
+            cfg_text += f"\ncfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = {cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size}"
 
-            print(f"\n# Amplify Saturation:")
-            print(f"cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = {cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase}")
+            cfg_text += f"\n\n# Amplify Saturation:"
+            cfg_text += f"\ncfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = {cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase}"
 
-            print(f"\n# Foreground selection:")
+            cfg_text += f"\n\n# Foreground selection:"
             for i in cfg.foreground_list:
-                print(f"cfg.foreground_list.append({i})")
+                cfg_text += f"\ncfg.foreground_list.append({i})"
 
-                print(f"\n# Texture Removal:")
+            cfg_text += f"\n\n# Texture Removal:"
+            for i in range(1, 5):
                 try:
-                    print(f"cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = {cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it}")
-                    print(f"cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = {cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it}")
-                    print(f"cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = {cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it}")
-                    print(f"cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = {cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it}")
-                except:
+                    cfg_text += (
+                        f"\ncfg.texture_{i}_kernel_size, cfg.texture_{i}_threshold_value, "
+                        f"cfg.texture_{i}_noise, cfg.texture_{i}_expand, cfg.texture_{i}_it = "
+                        f"({getattr(cfg, f'texture_{i}_kernel_size', 'N/A')}, "
+                        f"{getattr(cfg, f'texture_{i}_threshold_value', 'N/A')}, "
+                        f"{getattr(cfg, f'texture_{i}_noise', 'N/A')}, "
+                        f"{getattr(cfg, f'texture_{i}_expand', 'N/A')}, "
+                        f"{getattr(cfg, f'texture_{i}_it', 'N/A')})"
+                    )
+                except AttributeError:
                     pass
 
-            print(f"\n# Object Selection")
+            cfg_text += f"\n\n# Object Selection"
 
             for i in cfg.color_list:
-                print(f"cfg.color_list.append({i})")
+                cfg_text += f"\ncfg.color_list.append({i})"
 
-            print(f"cfg.smooth_mask_certain =  {cfg.smooth_mask_certain}")
+            cfg_text += f"\ncfg.smooth_mask_certain =  {cfg.smooth_mask_certain}"
 
-            print(f"\n# Circle Detection:")
-            print(f"cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = {cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio}")
-            print(f"cfg.circle_minArea, cfg.circle_maxArea =  {cfg.circle_minArea, cfg.circle_maxArea}")
-            print(f"cfg.min_radius_circle, cfg.tolerance_overlap =  {cfg.min_radius_circle, cfg.tolerance_overlap}")
-        pass
+            cfg_text += f"\n\n# Circle Detection:"
+            cfg_text += f"\ncfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio, = {cfg.circle_minCircularity, cfg.circle_minConvexity, cfg.circle_minInertiaRatio}"
+            cfg_text += f"\ncfg.circle_minArea, cfg.circle_maxArea =  {cfg.circle_minArea, cfg.circle_maxArea}"
+            cfg_text += f"\ncfg.min_radius_circle, cfg.tolerance_overlap =  {cfg.min_radius_circle, cfg.tolerance_overlap}"
+            
+            return cfg_text
 
     cfg = Config()
 

@@ -2429,7 +2429,113 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
         cv2.waitKey(config_profiles.WAIT_TIME)
 
         
+def show_histograms(img1, img2, color_spaces=['RGB', 'LAB', 'HSV'], bins=8, legend="After"):
+    """
+    Show histograms of two images as bar plots for each color channel in specified color spaces,
+    with an additional bar for the difference in the same chart.
     
+    Args:
+        img1: First image (numpy array).
+        img2: Second image (numpy array).
+        color_spaces: List of color spaces to visualize ('RGB', 'LAB', 'HSV').
+        bins: Number of bins for the histograms.
+        legend: Label legend.
+    """
+    color_mappings = {
+        'RGB': ('Blue', 'Green', 'Red'),
+        'LAB': ('L (black/white)', 'A (red/green)', 'B (blue/yellow)'),
+        'HSV': ('Hue', 'Saturation', 'Value')
+    }
+
+    legend_labels = ["Before", legend, "Difference"]
+    
+    def convert_color_space(image, color_space):
+        if color_space == 'RGB':
+            return image
+        elif color_space == 'LAB':
+            return cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        elif color_space == 'HSV':
+            return cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        else:
+            raise ValueError(f"Unsupported color space: {color_space}")
+
+    def get_x_labels(color_space, channel, bins):
+        """
+        Generate x-axis labels based on the color space and channel.
+        """
+        if color_space == 'RGB':
+            return np.linspace(0, 255, bins)
+        elif color_space == 'LAB':
+            if channel == 0:
+                return np.linspace(0, 100, bins)
+            else:
+                return np.linspace(-1, 1, bins)
+        elif color_space == 'HSV':
+            if channel == 0:
+                return np.linspace(0, 360, bins)
+            else:
+                return np.linspace(0, 100, bins)
+        else:
+            raise ValueError(f"Unsupported color space: {color_space}")
+    
+    num_color_spaces = len(color_spaces)
+    fig, axes = plt.subplots(num_color_spaces, 3, figsize=(15, 5 * num_color_spaces))
+
+    # Ensure `axes` is always a 2D array for consistency
+    if num_color_spaces == 1:
+        axes = np.expand_dims(axes, axis=0)
+    
+    for row, color_space in enumerate(color_spaces):
+        converted_img1 = convert_color_space(img1, color_space)
+        converted_img2 = convert_color_space(img2, color_space)
+        color_labels = color_mappings[color_space]
+        
+        for col, color_label in enumerate(color_labels):
+            ax = axes[row, col]
+            
+            # Calculate histograms
+            hist_img1 = cv2.calcHist([converted_img1], [col], None, [bins], [0, 256]).flatten()
+            hist_img2 = cv2.calcHist([converted_img2], [col], None, [bins], [0, 256]).flatten()
+            
+            # Normalize histograms to percentages
+            hist_img1 = hist_img1 / hist_img1.sum() * 100
+            hist_img2 = hist_img2 / hist_img2.sum() * 100
+            
+            # Calculate difference
+            diff = hist_img2 - hist_img1
+            
+            x = np.arange(bins)  # Bin positions
+            x_labels = get_x_labels(color_space, col, bins)
+            
+            # Plot histograms
+            ax.bar(x - 0.3, hist_img1, width=0.3, label=legend_labels[0], alpha=0.7, color='blue', align='center')
+            ax.bar(x, hist_img2, width=0.3, label=legend_labels[1], alpha=0.7, color='orange', align='center')
+            ax.bar(x + 0.3, diff, width=0.3, label=legend_labels[2], alpha=0.7, color='purple', align='center')
+            
+            ax.set_title(f"{color_space} - {color_label}")
+            ax.set_xlim([-0.5, bins - 0.5])  # Adjust limits to fully show bars
+            ax.set_ylim([-100, 100])  # Frequency axis: -100% to 100%
+
+            # Update x-axis labels with appropriate formatting
+            if color_space == 'LAB' and col in [1, 2]:  # LAB 'A' and 'B' channels
+                xticklabels = [f"{label:.1f}" for label in x_labels]
+            else:
+                xticklabels = [f"{int(label)}" for label in x_labels]
+                        
+            ax.set_xticks(x)
+            ax.set_xticklabels(xticklabels, rotation=90)
+            ax.set_xlabel("Value Range")
+            ax.set_ylabel("Frequency (%)")
+    
+    # Add a single legend at the top
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncol=3, fontsize='large', frameon=False)
+    fig.subplots_adjust(top=0.95)  # Adjust space for the legend
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the top for the legend
+    plt.show()
+    
+        
 def draw_ellipse_by_factor(image, factor=(0.5, 0.5), color=(255, 255, 255), thickness=-1):
     """
     Draws an ellipse on the image based on specified width and height factors.
