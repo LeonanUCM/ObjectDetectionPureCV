@@ -2433,7 +2433,7 @@ def show_mosaic(images, headers=[""], footers=[""], window_name="Mosaic", mosaic
 
     if config_profiles.NOTEBOOK_MODE == True:
         # Display the mosaic in a Jupyter Notebook.
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(max_resolution/100, max_resolution/100))
         plt.imshow(mosaic)  # Convert from BGR to RGB for correct color display
         plt.axis('off')  # Turn off axis
         plt.title(window_name, fontsize=16, fontweight='bold')  # Add title
