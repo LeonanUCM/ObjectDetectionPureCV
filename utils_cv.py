@@ -1,9 +1,7 @@
 # Utils: functions created by the author
 
 import numpy as np 
-import cv2
-import math
-import datetime
+import cv2, math, datetime, os
 import PIL.ExifTags as EXIF
 from PIL import Image as PILImage
 from scipy import ndimage as ndi
@@ -3089,3 +3087,253 @@ def convert_grabCut2heatmap(mask_GrabCut):
     heat_map = np.take(color_grab_cut, mask_GrabCut, axis=0)
 
     return heat_map
+
+
+def count_fruits(directory, file_name):
+    path_image = os.path.join(directory, file_name)
+
+    # 2.1. Image loading
+    img_IO = PILImage.open(path_image)
+    img_original = np.array(img_IO)
+
+
+    # 2.2. EXIF
+    result_exif = {}
+    extract_metadata_EXIF(img_IO, result_exif)
+    img_IO.close()		
+
+
+    # 2.4. Image resizing
+    img_crop = crop_image_to_aspect_ratio(img_original, cfg.aspect_ratio)
+    img_reduced = resize_image(img_crop, cfg.max_resolution)
+
+
+    # 2.5. Color Amplification
+    if cfg.color_amplify_range == 0:
+        img_amplified = img_reduced
+    else:
+        img_amplified = amplify_saturation_near_hue(img_reduced, cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase)
+        
+        
+    # 2.6. Color Smoothing
+    if cfg.smooth_colors == 0:
+        img_smooth_color = img_amplified
+    else:
+        img_smooth_color = smooth_color(img_amplified, kernel_size=cfg.smooth_colors, min_brightness=20, max_brightness=210)
+
+
+    # 2.7. Texture Removal
+    if cfg.texture_1_kernel_size <= 1:
+        img_texture = img_amplified
+    else:
+        img_texture, mask = detect_smooth_areas_rgb(img_amplified, 
+                                    kernel_size=cfg.texture_1_kernel_size, 
+                                    threshold_value=cfg.texture_1_threshold_value, 
+                                    noise=cfg.texture_1_noise, 
+                                    expand=cfg.texture_1_expand, 
+                                    it=cfg.texture_1_it)
+                            
+                            
+    # 2.8. CLAHE
+    _, img_clahe, _ = apply_clahe(img_texture, 
+                                tileGridSize=(cfg.blur_clahe_grid, cfg.blur_clahe_grid), 
+                                clipLimit=cfg.blur_clahe_limit)
+    img_noise = remove_salt_and_pepper(img_clahe, kernel_size=cfg.blur_salt_pepper)
+    img_clahe_blur = blur_image(img_noise, kernel_size=cfg.blur_size)
+
+
+    #2.9. Foreground Selection
+    img_before = img_clahe_blur.copy()
+    img_tmp = img_before.copy()
+    mask_tmp = np.zeros(img_tmp.shape[:2], dtype=np.int8)
+
+    # Iterate through the list of foreground colors to create masks
+    for i in range(len(cfg.foreground_list)):
+        cfg.foreground_name = cfg.foreground_list[i][0][0]
+        cfg.foreground_weight = cfg.foreground_list[i][0][1]
+        color_space = 'LAB' if 'LAB' in cfg.foreground_name else 'HSV'
+
+        if cfg.foreground_weight != 0:
+            selected_area, discarded_area, mask_selected = filter_color(img_tmp, 
+                                                            color_ini=cfg.foreground_list[i][1][0:3], 
+                                                            color_end=cfg.foreground_list[i][1][3:6],  
+                                                            noise=cfg.foreground_list[i][1][6],
+                                                            expand=cfg.foreground_list[i][1][7],
+                                                            close=cfg.foreground_list[i][1][8],
+                                                            iterations=cfg.foreground_list[i][1][9],
+                                                            color_space=color_space)
+
+            # Accumulate mask weights based on configuration
+            mask_tmp += np.where(mask_selected > 0, cfg.foreground_weight, 0)
+
+            del selected_area, discarded_area, mask_selected
+
+    # Create a binary foreground mask
+    mask_foreground = np.where(mask_tmp >= 1, 255, 0).astype('uint8')
+    if '' in cfg.profile:
+        mask_foreground = expand_mask_circle(mask_foreground, kernel_size=7, iterations=1)
+
+    # Apply the foreground mask to the smoothed color image
+    img_foreground = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=mask_foreground)
+    img_background = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=~mask_foreground)
+
+    mask_normal = normalize_mask_to_uin8(mask_tmp)
+
+
+    # 2.10. Quantization
+    if cfg.quantization_n_colors == 0:
+        img_quantization = img_foreground
+    else:
+        img_preprocessed, clustered_rgb, clustered_labels = kmeans_recolor(img_foreground, n_clusters=cfg.quantization_n_colors)
+
+
+    # 2.11. Refinement
+    img_before = img_preprocessed
+    img_tmp = img_before
+    mask_tmp = np.zeros(img_tmp.shape[:2], dtype=np.int8)
+    mask_certainly_object = np.zeros(img_tmp.shape[:2], dtype=np.uint8)
+
+    # Iterate through the list of target colors to create masks for object detection
+    for i in range(len(cfg.color_list)):
+        cfg.color_name = cfg.color_list[i][0][0]
+        cfg.color_weight = cfg.color_list[i][0][1]
+
+        if cfg.color_weight != 0:
+            selected_area, discarded_area, mask_selected = filter_color(img_tmp, 
+                                                            color_ini=cfg.color_list[i][1][0:3], 
+                                                            color_end=cfg.color_list[i][1][3:6],  
+                                                            noise=cfg.color_list[i][1][6],
+                                                            expand=cfg.color_list[i][1][7],
+                                                            close=cfg.color_list[i][1][8],
+                                                            iterations=cfg.color_list[i][1][9])
+            
+            # Save a mask for areas that are certain to be objects (e.g., fruits)
+            if cfg.color_weight >= 2:
+                mask_rounded = cv2.bitwise_or(mask_certainly_object, mask_selected)
+                if cfg.smooth_mask_certain >= 3:
+                    kernel_size = cfg.smooth_mask_certain
+                    mask_rounded = erode_mask_circle(mask_rounded, kernel_size=kernel_size, iterations=1)
+                    mask_rounded = expand_mask_circle(mask_rounded, kernel_size=kernel_size, iterations=1)
+                    mask_rounded = erode_mask_circle(mask_rounded, kernel_size=make_odd(kernel_size/2), iterations=2)
+                    mask_rounded = expand_mask_circle(mask_rounded, kernel_size=make_odd(kernel_size/2), iterations=1)
+                mask_certainly_object = mask_rounded.astype('uint8')
+                mask_selected = mask_certainly_object
+
+            # Accumulate mask weights based on configuration
+            mask_tmp += np.where(mask_selected > 0, cfg.color_weight, 0)
+
+            del selected_area, discarded_area, mask_selected
+
+    # Create a binary mask for objects
+    mask_objects = np.where(mask_tmp >= 1, 255, 0).astype('uint8')
+    img_objects = cv2.bitwise_and(img_before, img_before, mask=mask_objects)
+    img_discarded = cv2.bitwise_and(img_before, img_before, mask=~mask_objects)
+    img_preprocessed = img_objects
+
+    mask_normal = normalize_mask_to_uin8(mask_tmp)
+
+
+    # 3.1. Fill holes
+    img_tmp = cv2.cvtColor(255-img_objects, cv2.COLOR_RGB2GRAY).copy()
+    img_before = img_tmp
+    img_filled = fill_holes_with_gray(img_tmp, 100);
+
+
+    # 3.2. Improve mask
+    img_tmp = img_filled.copy()
+
+    # Convert mask to grayscale and invert
+    img_before = img_tmp
+
+    # Apply noise removal and blurring to the mask
+    img_tmp = remove_salt_and_pepper(img_tmp, kernel_size=9)
+    img_tmp = blur_image(img_tmp, kernel_size=19)
+    img_gray_blur = img_tmp.copy()
+
+    # Improve contrast of the mask
+    if cfg.factor_contrast != 1:
+        img_contrast_adjusted = np.clip(img_tmp**cfg.factor_contrast, 0, 254).astype('uint8')
+        img_tmp = np.where(img_tmp < 255, img_contrast_adjusted, img_tmp).astype('uint8')
+        
+    # Enhance visibility of certain objects, making it darker
+    img_tmp = np.where(mask_certainly_object > 0, img_tmp**0.92, img_tmp).astype('uint8')
+
+    img_objects_improved = img_tmp.copy()
+
+    # Detect circles representing objects
+    circles, img_delimited, mask_circles = \
+        detect_circles(img_filled, img_original=img_reduced,
+                        minCircularity=cfg.circle_minCircularity, 
+                        minConvexity=cfg.circle_minConvexity, 
+                        minInertiaRatio=cfg.circle_minInertiaRatio, 
+                        minArea=cfg.circle_minArea, 
+                        maxArea=cfg.circle_maxArea,
+                        min_radius=cfg.min_radius_circle,
+                        tolerance_overlap=cfg.tolerance_overlap)
+
+    num_circles = len(circles)
+
+    # Draw detected circles on the original smoothed color image
+    img_final = draw_circles(img_reduced, circles, show_label=True, solid=False)
+
+    # Calculate accuracy if ground truth is available
+    num_found_objects = num_circles
+
+    try:
+        # Extract expected number of objects from filename
+        num_expected_objects = int(file_name[file_name.find("_gt") + 3:file_name.rfind(".")])
+        accuracy = 100 * num_found_objects / num_expected_objects
+        filename_result = f"{file_name}_result_pd=[{num_found_objects}]acc=[{accuracy:.1f}pct].jpg"
+        header_image = f"    Found={num_found_objects} objects     Expected={num_expected_objects}    Accuracy={accuracy:.1f}%"
+    except:
+        num_expected_objects = -1
+        accuracy = -1
+        filename_result = f"{file_name}_result.jpg"
+        header_image = f"    Found={num_found_objects} objects"
+
+    header_image += f"    Filename={file_name}" if file_name != '' else ''
+    footer_image = f"{result_exif}"
+    filename_pre_process = f"{file_name}_pre.jpg"
+
+    return build_mosaic([img_final], 
+                headers=[header_image],
+                footers=[footer_image],
+                max_resolution=2000)
+
+
+def test_directory(directory, specific_files=[], limit_files=0):
+    """
+    Tests the object counting process on a directory of images, optionally filtering specific files or limiting the number of files processed.
+
+    **Scenario:**
+    This function is useful for batch processing multiple images in a directory, such as evaluating the system's performance across different datasets or profiles.
+    For example, an agricultural researcher can use this function to process all orchard images in a folder and obtain summary accuracy reports.
+
+    """
+    from tqdm import tqdm
+    import time    
+
+    result_images = []
+
+    # List all files in the directory
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f)) ]
+
+    if len(specific_files) > 0:
+        files = specific_files
+
+    if limit_files > 0:
+        files = files[:limit_files]
+
+    print(f'Directory: {directory}')
+    with tqdm(total=len(files)) as pbar:
+
+        # Process each image
+        for file in files:
+            
+            print(f'File: {file}')
+
+            result_image = count_fruits(directory, file)
+            result_images.append(result_image)
+            save_image(result_image, f'/kaggle/working/{file}')
+            pbar.update(1)
+    return result_images
