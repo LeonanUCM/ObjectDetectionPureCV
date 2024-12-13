@@ -148,6 +148,25 @@ def build_mosaic(images, headers=[""], footers=[""], mosaic_dims=(0,0), border_s
         reduced_images.append(bordered_img)
 
     img_height, img_width = reduced_images[0].shape[:2]
+    
+    # Ensure all images have consistent dimensions by cropping or filling if necessary.
+    for i in range(len(reduced_images)):
+        current_height, current_width = reduced_images[i].shape[:2]
+        print(current_height, current_width, img_height, img_width)
+    
+        # Crop if larger than target dimensions
+        if current_height > img_height or current_width > img_width:
+            reduced_images[i] = reduced_images[i][:img_height, :img_width]
+    
+        # Fill if smaller than target dimensions
+        elif current_height < img_height or current_width < img_width:
+            # Create a blank canvas of target size
+            filled_image = np.zeros((img_height, img_width, 3), dtype=reduced_images[i].dtype)
+            # Paste the original image in the top-left corner
+            filled_image[:current_height, :current_width] = reduced_images[i]
+            reduced_images[i] = filled_image
+            
+                
     mosaic_height = img_height * m + header_height + footer_height
     mosaic_width = img_width * n
     mosaic = np.zeros((mosaic_height, mosaic_width, 3), dtype=np.uint8)
@@ -1542,6 +1561,40 @@ def save_image(image, path_filename_result):
     # Save the image to the specified path.
     cv2.imwrite(path_filename_result, img_RGB)
     debug_print(f"    Saved: {path_filename_result}")
+
+
+def crop_center(image, crop_percent):
+    """
+    Crops a square or rectangular region from the center of the image based on a single percentage.
+
+    Args:
+        image (numpy.ndarray): The input image.
+        crop_percent (float): The percentage (0 to 1) of the original dimensions to retain.
+
+    Returns:
+        numpy.ndarray: The cropped image.
+    """
+    # Validate percentage
+    if not (0 < crop_percent <= 1):
+        raise ValueError("crop_percent must be between 0 and 1.")
+
+    # Get the image dimensions
+    height, width = image.shape[:2]
+
+    # Calculate the crop dimensions
+    crop_width = int(width * crop_percent)
+    crop_height = int(height * crop_percent)
+
+    # Calculate the start and end coordinates for the crop
+    start_x = (width - crop_width) // 2
+    start_y = (height - crop_height) // 2
+    end_x = start_x + crop_width
+    end_y = start_y + crop_height
+
+    # Perform the crop
+    cropped_image = image[start_y:end_y, start_x:end_x]
+
+    return cropped_image
 
 
 def crop_image_to_aspect_ratio(image, ratio=(4, 3)):
