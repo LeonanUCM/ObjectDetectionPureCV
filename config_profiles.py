@@ -76,10 +76,10 @@ def load_config(profile):
     # but can be redefined in the profile specific configuration
     cfg.max_resolution = 1536 # resolution of reduced image to be processed
     cfg.aspect_ratio = (4,3) # 4x3
-    cfg.factor_contrast = 1
+    cfg.factor_contrast = 0.97
     cfg.resolution_returned = 2048 # resolution of original image returned
     cfg.expand_foreground = 13
-    cfg.fill_holes = True
+    cfg.fill_holes = 80
     cfg.color_list = []
     cfg.foreground_list = []
     cfg.color_list_name_weight = []
@@ -170,7 +170,7 @@ def load_config(profile):
         cfg.blur_clahe_grid, cfg.blur_clahe_limit, cfg.blur_salt_pepper, cfg.blur_size = (5, 2.5, 5, 5)
 
         # Amplify Saturation:
-        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (50, 5, 10)
+        cfg.color_amplify_hue, cfg.color_amplify_range, cfg.color_amplify_increase = (40, 20, 0.5)
         
         # Foreground selection:
         cfg.foreground_list.append([['Foreground Green', -1], [70, 30, 20, 316, 100, 100, 3, 21, 11, 1]])
