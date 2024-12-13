@@ -63,6 +63,48 @@ def resize_image(image, max_resolution=1200, downscale_factor=0, interpolation=c
 
     return resized_image
 
+
+def calculate_image_size(image_array):
+    """
+    Calculate the size of an image array in bytes and format it in megabytes (MB).
+
+    Parameters:
+        image_array (numpy.ndarray): The image array to calculate the size for.
+
+    Returns:
+        dict: A dictionary with detailed size calculations and formatted output.
+    """
+    if not isinstance(image_array, np.ndarray):
+        raise ValueError("Input must be a NumPy array.")
+    
+    # Get the dimensions of the image
+    shape = image_array.shape
+    dtype = image_array.dtype  # Data type of the array elements
+    total_elements = image_array.size  # Total number of elements in the array
+    element_size = image_array.itemsize  # Size of each element in bytes
+    total_size = image_array.nbytes  # Total size of the array in bytes
+    total_size_mb = round(total_size / (1024 ** 2),2)  # Convert bytes to megabytes
+
+    # Explanation of calculation
+    explanation = (
+        f"The image array has dimensions {shape}.\n"
+        f"Each element is of type '{dtype}' and takes {element_size} bytes.\n"
+        f"The total number of elements is {total_elements}, resulting in a total size of {total_size} bytes.\n"
+        f"This equals approximately {total_size_mb:.2f} MB."
+    )
+
+    return {
+        "shape": shape,
+        "dtype": dtype,
+        "total_elements": total_elements,
+        "element_size": element_size,
+        "total_size_bytes": total_size,
+        "total_size_mb": total_size_mb,
+        "explanation": explanation
+    }
+
+
+
 def image_to_base64(image_cv2):
     """
     Encodes an OpenCV image to a Base64 string.
@@ -1562,7 +1604,7 @@ def save_image(image, path_filename_result):
     debug_print(f"    Saved: {path_filename_result}")
 
 
-def crop_center(image, crop_percent):
+def crop_center(image, crop_percent=0.5):
     """
     Crops a square or rectangular region from the center of the image based on a single percentage.
 
