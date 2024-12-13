@@ -152,7 +152,6 @@ def build_mosaic(images, headers=[""], footers=[""], mosaic_dims=(0,0), border_s
     # Ensure all images have consistent dimensions by cropping or filling if necessary.
     for i in range(len(reduced_images)):
         current_height, current_width = reduced_images[i].shape[:2]
-        print(current_height, current_width, img_height, img_width)
     
         # Crop if larger than target dimensions
         if current_height > img_height or current_width > img_width:
