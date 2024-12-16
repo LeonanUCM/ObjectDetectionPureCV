@@ -663,6 +663,9 @@ def count_round_objects(path_image='', image64='', profile='ORANGE ', json_exif_
     images.append(img_circles.copy())
     num_circles = len(circles)
 
+    show_mosaic([img_circles], window_name='Circles', max_resolution=800)
+
+
     #####################################################################################################
     debug_print("8. Final Result")
     #####################################################################################################
@@ -1049,3 +1052,5 @@ def test_directory(directory, profile, specific_files=[], limit_files=0):
     return accuracy_sumary
 
 
+
+test_directory(directory='test_images', profile='YELLOW_PEACH', limit_files=1)

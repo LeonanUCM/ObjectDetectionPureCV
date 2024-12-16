@@ -578,9 +578,9 @@ def filter_color(image, color_ini, color_end, iterations=1,
         assert color_ini[0] >= 0   and color_end[0] >= 0,   f"{str_color_format} The H you informed is negative."
         assert color_ini[0] <= 360 and color_end[0] <= 360, f"{str_color_format} The H you informed is greater than 360."
         assert color_ini[1] >= 0   and color_end[1] >= 0,   f"{str_color_format} The S you informed is negative."
-        assert color_ini[1] <= 360 and color_end[1] <= 100, f"{str_color_format} The S you informed is greater than 100."
+        assert color_ini[1] <= 100 and color_end[1] <= 100, f"{str_color_format} The S you informed is greater than 100."
         assert color_ini[2] >= 0   and color_end[2] >= 0,   f"{str_color_format} The V you informed is negative."
-        assert color_ini[2] <= 360 and color_end[2] <= 100, f"{str_color_format} The V you informed is greater than 100."
+        assert color_ini[2] <= 100 and color_end[2] <= 100, f"{str_color_format} The V you informed is greater than 100."
 
         color_ini = (round(color_ini[0]/2.0), round(color_ini[1]*2.55), round(color_ini[2]*2.55))
         color_end = (round(color_end[0]/2.0), round(color_end[1]*2.55), round(color_end[2]*2.55))
@@ -884,7 +884,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
             params.maxArea = int(maxArea * 0.6)
         elif turn == 5:
             # Sixth turn, last attempt
-            debug_print("   Last attempt to detect circles.")
+            pass
 
 
         # Validate parameters
@@ -915,13 +915,13 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
             img_gray_inverted = expand_mask_circle(img_gray_inverted, kernel_size=kernel_size-4, iterations=1)
 
             for circle in last_circles:
-                (x, y), radius = circle
+                (x, y), radius, *_ = circle
                 cv2.circle(img_gray_inverted, (x, y), radius, 220 - turn * 10, thickness=-1)
 
             img_gray_inverted = blur_image(img_gray_inverted, kernel_size=13, sigmaX=0)
 
         last_circles = circles
-        circles_result += circles
+        circles_result += [(circle, turn) for circle in circles]
         
     debug_print(f"    {len(circles_result)} circles detected before remove overlap.")
     circles_result, discarded_circles = remove_overlapping_circles(circles_result, tolerance=tolerance_overlap)
@@ -929,19 +929,18 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
 
     # Draw discarded circles (gray)
     for circle in discarded_circles:
-        (x, y), radius = circle
+        ((x, y), radius), *_ = circle
         cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (0, 0, 0), thickness=8)
         cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (200, 200, 200), thickness=3)
 
     # Draw circles after remove overlap
-    color_increment = 200.0 / len(circles_result) if len(circles_result) != 0 else 0
     for i, circle in enumerate(circles_result):
-        # The first detected is darker and the last is lighter
-        color_based_on_position = (int(50 + color_increment * i), 80, 80)
-        (x, y), radius = circle
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (0, 0, 0), thickness=12)
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, color_based_on_position, thickness=4)
+        ((x, y), radius), turn = circle
+        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (10, 10, 10), thickness=12)
+        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (16,192,255), thickness=8)
         cv2.circle(mask, (x, y), radius, 255, thickness=-1) 
+        # Write the turn number inside the circle
+        draw_centered_text_on_circle(img_delimited, x, y, str(turn+1))
 
     # Remove circles already detected in the last iteration
     for circle in last_circles:
@@ -949,6 +948,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
         (x, y), radius = circle
         cv2.circle(img_gray_inverted, (x, y), radius, 240, thickness=-1)
                 
+    circles_result = [(circle) for (circle), *_ in circles_result]
     return circles_result, img_delimited, img_gray_inverted
 
 def check_overlap(circle1, circle2, overlap_level=0.8):
@@ -969,8 +969,8 @@ def check_overlap(circle1, circle2, overlap_level=0.8):
     Returns:
         bool: True if the circles overlap with the required overlap level, False otherwise.
     """
-    (x1, y1), r1 = circle1
-    (x2, y2), r2 = circle2
+    (x1, y1), r1, *_ = circle1
+    (x2, y2), r2, *_ = circle2
     distance = ((x1 - x2)**2 + (y1 - y2)**2) ** 0.5
     return distance <= ((r1 + r2) * overlap_level)
 
@@ -992,8 +992,8 @@ def check_inside_or_overlap(circle1, circle2, tolerance=0.05):
     Returns:
         bool: True if the circles overlap or if one is inside the other, False otherwise.
     """
-    (x1, y1), r1 = circle1
-    (x2, y2), r2 = circle2
+    (x1, y1), r1, *_ = circle1
+    (x2, y2), r2, *_ = circle2
 
     r1 -= r1 * tolerance
     r2 -= r2 * tolerance
@@ -1038,7 +1038,9 @@ def remove_overlapping_circles(circles, tolerance=0.05):
         # Iterate over the remaining circles
         for j in range(i + 1, len(circles)):
             # If the circles overlap, remove the overlapping circle
-            if check_inside_or_overlap(circles[i], circles[j], tolerance=tolerance):
+            circle1, _ = circles[i]
+            circle2, _ = circles[j]
+            if check_inside_or_overlap(circle1, circle2, tolerance=tolerance):
                 # Remove the overlapping circle
                 discarded_circles.append(circles[j])  # Keep the one inserted before
                 del circles[j]
@@ -1091,7 +1093,7 @@ def set_maximum_radius_circle(circles, max_radius_circle):
     return [(center, radius if radius <= max_radius_circle else max_radius_circle) for center, radius in circles]
 
 
-def normalize_mask_to_uin8(mask):
+def normalize_mask_to_uint8(mask):
     """
     Normalize an int8 mask to uint8 with values mapped to [0, 255],
     ensuring 0 maps to 127.
@@ -1112,6 +1114,32 @@ def normalize_mask_to_uin8(mask):
 
     # Clip values to [0, 255] and convert to uint8
     normalized = np.clip(normalized, 0, 255).astype(np.uint8)
+    
+    return normalized
+
+
+def weights_to_grayscale(mask, threshold=0):
+    """
+    Select only values greather than threshold, and remap from 0 to 255.
+
+    Args:
+        mask (np.ndarray): Input mask with dtype=int8 and values in [-128, 127].
+        threshold (int): Maximum value of discarded pixels.
+
+    Returns:
+        np.ndarray: Normalized mask with dtype=uint8 and values in [0, 255].
+    """
+    assert mask.dtype == np.int8, "Input mask must have dtype int8."
+
+    mask = np.where(mask > threshold, mask, 0).astype(np.uint8)
+
+    max_val = np.max(mask)
+    interval = 255 / max_val
+
+    mask = (mask * interval).astype(np.uint8)
+
+    # Clip values to [0, 255] and convert to uint8
+    normalized = np.clip(mask, 0, 255).astype(np.uint8)
     
     return normalized
 
@@ -1193,6 +1221,9 @@ def detect_smooth_areas_rgb(image, kernel_size=21, threshold_value=15, noise=3, 
     img_after = cv2.bitwise_and(img_before, img_before, mask=mask)
 
     return img_after, mask
+
+
+
 def draw_circles(image, circles, show_label=True, solid=False):
     """
     Draws circles and labels on an image.
@@ -1220,37 +1251,57 @@ def draw_circles(image, circles, show_label=True, solid=False):
             cv2.circle(result_img, (x, y), radius + 5, (230, 230, 230), thickness=-1)
         else:
             # Draw multiple concentric circles with varying thickness to create a layered effect.
-            cv2.circle(result_img, (x, y), radius + 2, (20, 20, 20), thickness=8)
-            cv2.circle(result_img, (x, y), radius + 2, (210, 210, 210), thickness=6)
-            cv2.circle(result_img, (x, y), radius + 2, (250, 250, 250), thickness=4)
+            cv2.circle(result_img, (x, y), radius + 2, (10, 10, 10), thickness=12)
+            cv2.circle(result_img, (x, y), radius + 2, (16, 192, 255), thickness=8)
 
             if show_label:
                 # Create a label for the circle based on its index.
                 label = f"{i + 1}"
-                # Determine the size of the text to center it on the circle.
-                (text_width, text_height), _ = cv2.getTextSize(
-                    label,
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.7,
-                    thickness=2
-                )
-
-                # Calculate the position to place the text so that it's centered.
-                text_position = (int(x - text_width / 2), int(y + text_height / 2))
 
                 # Draw the label text on the image.
-                cv2.putText(
-                    result_img,
-                    label,
-                    text_position,
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.7,
-                    color=(40, 40, 40),
-                    thickness=2
-                )
+                draw_centered_text_on_circle(result_img, x, y, label)
 
     # Return the image with drawn circles and labels.
     return result_img
+
+
+def draw_centered_text_on_circle(result_img, x, y, label, font_scale=0.7, thickness=2, color=(40, 40, 40)):
+    """
+    Draws a label text centered on a circle at the given coordinates.
+
+    Args:
+        result_img (numpy.ndarray): The image on which to draw the text.
+        x (int): The x-coordinate of the circle's center.
+        y (int): The y-coordinate of the circle's center.
+        label (str): The text to draw on the image.
+        font_scale (float, optional): Scale factor for the font size. Default is 0.7.
+        thickness (int, optional): Thickness of the text. Default is 2.
+        color (tuple, optional): Color of the text in BGR format. Default is (40, 40, 40).
+
+    Returns:
+        None
+    """
+    # Determine the size of the text to center it on the circle.
+    (text_width, text_height), _ = cv2.getTextSize(
+        label,
+        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=font_scale,
+        thickness=thickness
+    )
+
+    # Calculate the position to place the text so that it's centered.
+    text_position = (int(x - text_width / 2), int(y + text_height / 2))
+
+    # Draw the label text on the image.
+    cv2.putText(
+        result_img,
+        label,
+        text_position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=font_scale,
+        color=color,
+        thickness=thickness
+    )
 
 
 def get_exif_data(image):
@@ -3271,7 +3322,7 @@ def count_fruits(directory, file_name, cfg):
     img_foreground = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=mask_foreground)
     img_background = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=~mask_foreground)
 
-    mask_normal = normalize_mask_to_uin8(mask_tmp)
+    mask_normal = normalize_mask_to_uint8(mask_tmp)
 
 
     # 2.10. Quantization
@@ -3324,7 +3375,7 @@ def count_fruits(directory, file_name, cfg):
     img_discarded = cv2.bitwise_and(img_before, img_before, mask=~mask_objects)
     img_preprocessed = img_objects
 
-    mask_normal = normalize_mask_to_uin8(mask_tmp)
+    mask_normal = normalize_mask_to_uint8(mask_tmp)
 
 
     # 3.1. Fill holes

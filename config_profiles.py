@@ -83,13 +83,13 @@ def load_config(profile):
     cfg.color_list = []
     cfg.foreground_list = []
     cfg.color_list_name_weight = []
-    cfg.quantization_n_colors = 10
+    cfg.quantization_n_colors = 3
+    cfg.smooth_mask_certain = 0
     cfg.smooth_colors = 19
     cfg.texture_1_kernel_size, cfg.texture_1_threshold_value, cfg.texture_1_noise, cfg.texture_1_expand, cfg.texture_1_it = (1, 1, 1, 1, 3)
     cfg.texture_2_kernel_size, cfg.texture_2_threshold_value, cfg.texture_2_noise, cfg.texture_2_expand, cfg.texture_2_it = (1, 1, 1, 1, 3)
     cfg.texture_3_kernel_size, cfg.texture_3_threshold_value, cfg.texture_3_noise, cfg.texture_3_expand, cfg.texture_3_it = (1, 1, 1, 1, 3)
     cfg.texture_4_kernel_size, cfg.texture_4_threshold_value, cfg.texture_4_noise, cfg.texture_4_expand, cfg.texture_4_it = (1, 1, 1, 1, 3)
-    cfg.smooth_mask_certain = 7
 
 
     # Load configuration depending on the cfg.profile
@@ -183,10 +183,10 @@ def load_config(profile):
 
         # Object Selection
         cfg.color_list=[]
-        cfg.color_list.append([['Object Low Intensity and Sat', -1], [40, 0, 0, 23, 30, 80, 5, 7, 1, 1]])
-        cfg.color_list.append([['Object Probably', 1], [16, 30, 35, 65, 100, 100, 25, -13, -23, 1]])
-        cfg.color_list.append([['Object Certainly', 2], [16, 40, 35, 65, 100, 100, 25, -15, -23, 2]])
-        cfg.smooth_mask_certain = 15
+        cfg.color_list.append([['Object Low Intensity and Sat', -1], [50, 0, 0, 100, 70, 100, 1, 1, 5, 3]])
+        cfg.color_list.append([['Object Probably', 1], [16, 30, 35, 65, 100, 100, 25, 0, -25, 6]])
+        cfg.color_list.append([['Object Certainly', 2], [16, 40, 35, 65, 100, 100, 25, -7, -35, 5]])
+        cfg.color_list.append([['Object Certainly Middle', 3], [16, 40, 35, 65, 100, 100, 25, -7, -35, 7]])
 
 
         # Circle Detection:
