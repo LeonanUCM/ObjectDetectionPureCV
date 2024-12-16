@@ -412,38 +412,26 @@ def open_mask_circle(mask, kernel_size=20, iterations=1):
         mask_transformed = mask
     return mask_transformed
 
-def select_and_invert_mask(img_original, mask):
+def select_mask(img_original, mask):
     """
-    Applies a mask to an image and inverts the mask.
+    Applies a mask to an image, return only selected area.
 
     **Scenario:**
-    In fruit detection, you might want to isolate the fruit regions from the background. This function inverts the given mask to select only the unmasked (background) areas or the masked (fruit) areas based on your requirements, allowing for versatile image processing tasks such as highlighting fruits or removing backgrounds.
+    In fruit detection, you might want to isolate the fruit regions from the background.
 
     **Logic and Computer Vision Methods:**
-    The function first inverts the mask by setting all non-zero (masked) regions to zero and vice versa, creating a binary mask with opposite meaning. It then uses OpenCV's `bitwise_and` to apply this inverted mask to the original image, effectively isolating the desired regions. The result is the original image with the mask applied and the inverted mask itself for further use.
+    It uses OpenCV's `bitwise_and` to apply the mask to the original image, effectively isolating the desired regions. 
 
     Args:
         img_original (numpy.ndarray): The original image to which the mask will be applied.
         mask (numpy.ndarray): A mask image where non-zero values indicate the areas to mask.
 
     Returns:
-        tuple: A tuple containing:
-            - img_mask (numpy.ndarray): The image after the mask has been applied.
-            - mask_final (numpy.ndarray): The inverted mask used for masking the image.
+        - img_mask (numpy.ndarray): The image after the mask has been applied.
     """
     
-    # Invert the mask: change all non-zero values (masked areas) to 0, and all 0 values to 255.
-    # The result is a binary mask with the opposite meaning, where 0 indicates the areas to keep.
-    mask_final = np.array(np.where((mask[..., 0] > 0) | 
-                                   (mask[..., 1] > 0) | 
-                                   (mask[..., 2] > 0),
-                                   0, 255), dtype=np.uint8)
-    
-    # Apply the inverted mask to the original image, keeping only the regions that were not masked.
-    img_mask = cv2.bitwise_and(img_original, img_original, mask=mask_final)
+    return cv2.bitwise_and(img_original, img_original, mask=mask)
 
-    # Return the image with the mask applied, and the inverted mask itself.
-    return img_mask, mask_final
 
 def inRange_LAB(image, color_ini, color_end):
     """
@@ -647,8 +635,8 @@ def filter_color(image, color_ini, color_end, iterations=1,
     
     # --- Apply transformations to the mask (erode, dilate, etc.)
     mask = transform_mask(mask, iterations=iterations, pepper_kernel_size=noise, close_kernel_size=close, expand_kernel_size=expand, show=show)
-    selected_area = cv2.bitwise_and(img_RGB, img_RGB, mask=mask)
-    discarded_area = cv2.bitwise_and(img_RGB, img_RGB, mask=~mask)
+    selected_area = select_mask(img_RGB, mask)
+    discarded_area = select_mask(img_RGB, ~mask)
 
     return selected_area, discarded_area, mask
 
@@ -849,7 +837,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
     params.maxArea = maxArea
 
     # Run multiple detections to distinguish small circles from big circles
-    for turn in range(6):
+    for turn in range(5):
         params.maxThreshold = 250 - turn * 20
         if turn == 0:
             # First turn, very well defined circles
@@ -882,9 +870,6 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
             params.minInertiaRatio = minInertiaRatio * 0.4
             params.minArea = int(minArea * 0.85)
             params.maxArea = int(maxArea * 0.6)
-        elif turn == 5:
-            # Sixth turn, last attempt
-            pass
 
 
         # Validate parameters
@@ -904,7 +889,7 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
 
         circles = set_minimum_radius_circle(circles, min_radius)  # Make small circles bigger
         circles = set_maximum_radius_circle(circles, max_radius)  # Make big circles smaller
-        debug_print(f"    Turn {turn}: {len(circles)} circles detected.")
+        debug_print(f"    Turn {turn+1}: {len(circles)} circles detected.")
         
         # Erase detected circles from the mask
         if last_circles is not None:
@@ -923,24 +908,24 @@ def detect_circles(image, img_original, minCircularity=0.3, minConvexity=0.5, mi
         last_circles = circles
         circles_result += [(circle, turn) for circle in circles]
         
-    debug_print(f"    {len(circles_result)} circles detected before remove overlap.")
+    num_circles_before = len(circles_result)
     circles_result, discarded_circles = remove_overlapping_circles(circles_result, tolerance=tolerance_overlap)
-    debug_print(f"    {len(circles_result)} circles detected after remove overlap.")
+    num_circles_after = len(circles_result)
+    debug_print(f"    Remove overlaps: Number of circles before={num_circles_before}, after={num_circles_after}.")
 
-    # Draw discarded circles (gray)
+    # Draw discarded circles (RED)
     for circle in discarded_circles:
         ((x, y), radius), *_ = circle
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (0, 0, 0), thickness=8)
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (200, 200, 200), thickness=3)
+        draw_circle(img_delimited, circle=((x, y), radius), color=(250, 60, 40), thickness=1)
 
-    # Draw circles after remove overlap
-    for i, circle in enumerate(circles_result):
-        ((x, y), radius), turn = circle
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (10, 10, 10), thickness=12)
-        cv2.circle(img_delimited, (x, y), radius + extra_margin_circle, (16,192,255), thickness=8)
+    # Draw circles after remove overlap (blue)
+    for circle in circles_result:
+        ((x, y), radius), turn, *_ = circle
+        draw_circle(img_delimited, ((x, y), radius+extra_margin_circle), color=(20, 200, 250), thickness=3)
+        
         cv2.circle(mask, (x, y), radius, 255, thickness=-1) 
         # Write the turn number inside the circle
-        draw_centered_text_on_circle(img_delimited, x, y, str(turn+1))
+        draw_centered_text_on_circle(img_delimited, x, y, f'T{turn+1}')
 
     # Remove circles already detected in the last iteration
     for circle in last_circles:
@@ -1218,10 +1203,89 @@ def detect_smooth_areas_rgb(image, kernel_size=21, threshold_value=15, noise=3, 
         mask = expand_mask_circle(mask, kernel_size=expand, iterations=it)
     mask = ~mask
 
-    img_after = cv2.bitwise_and(img_before, img_before, mask=mask)
+    img_after = select_mask(img_before, mask)
 
     return img_after, mask
 
+def draw_centered_text_on_circle(result_img, x, y, label, font_scale=0.7, thickness=2, color=(30, 30, 30)):
+    """
+    Draws a label text centered on a circle at the given coordinates.
+
+    Args:
+        result_img (numpy.ndarray): The image on which to draw the text.
+        x (int): The x-coordinate of the circle's center.
+        y (int): The y-coordinate of the circle's center.
+        label (str): The text to draw on the image.
+        font_scale (float, optional): Scale factor for the font size. Default is 0.7.
+        thickness (int, optional): Thickness of the text. Default is 2.
+        color (tuple, optional): Color of the text in BGR format. Default is (40, 40, 40).
+
+    Returns:
+        None
+    """
+    # Determine the size of the text to center it on the circle.
+    (text_width, text_height), _ = cv2.getTextSize(
+        label,
+        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=font_scale,
+        thickness=thickness
+    )
+
+    # Calculate the position to place the text so that it's centered.
+    text_position = (int(x - text_width / 2), int(y + text_height / 2))
+
+    # Draw shadow on the image.
+    cv2.putText(
+        result_img,
+        label,
+        text_position,
+        cv2.FONT_HERSHEY_DUPLEX,
+        fontScale=font_scale,
+        color=(220,220,220),
+        thickness=thickness*4
+    )
+
+    # Draw the label text on the image.
+    cv2.putText(
+        result_img,
+        label,
+        text_position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=font_scale,
+        color=color,
+        thickness=thickness
+    )
+    
+
+def draw_circle(result_img, circle, color=(20, 200, 250), thickness=3):
+    """
+    Draw concentric circles with a base color and a darker version of that color.
+
+    Parameters:
+        result_img (numpy.ndarray): Image to draw on.
+        circle (tuple): (x, y), radius
+        color (tuple): Base RGB color.
+        thickness (int): Base thickness for the circles.
+    """
+    (x, y), radius = circle
+    
+    # Convert BGR to HSV to modify saturation and brightness
+    rgb_color = np.uint8([[color]])  # Create a 1x1 image with the color
+    hsv_color = cv2.cvtColor(rgb_color, cv2.COLOR_RGB2HSV)
+
+    # Reduce saturation and brightness to 75%
+    h, s, v = hsv_color[0][0]
+    darker_hsv1 = np.array([h, int(s * 0.25), int(v * 0.25)], dtype=np.uint8)
+    darker_hsv2 = np.array([h, int(s * 0.75), int(v * 0.75)], dtype=np.uint8)
+    
+    # Convert back to BGR
+    darker_rgb1 = cv2.cvtColor(np.array([[darker_hsv1]], dtype=np.uint8), cv2.COLOR_HSV2RGB)[0][0]
+    darker_rgb2 = cv2.cvtColor(np.array([[darker_hsv2]], dtype=np.uint8), cv2.COLOR_HSV2RGB)[0][0]
+
+    # Draw circles
+    cv2.circle(result_img, (x, y), radius, tuple(map(int, darker_rgb1)), thickness=thickness * 3)  # Outer dark circle
+    cv2.circle(result_img, (x, y), radius, tuple(map(int, darker_rgb2)), thickness=thickness * 2)  # Middle darker circle
+    cv2.circle(result_img, (x, y), radius, color, thickness=thickness)  # Inner base color circle
 
 
 def draw_circles(image, circles, show_label=True, solid=False):
@@ -1251,8 +1315,7 @@ def draw_circles(image, circles, show_label=True, solid=False):
             cv2.circle(result_img, (x, y), radius + 5, (230, 230, 230), thickness=-1)
         else:
             # Draw multiple concentric circles with varying thickness to create a layered effect.
-            cv2.circle(result_img, (x, y), radius + 2, (10, 10, 10), thickness=12)
-            cv2.circle(result_img, (x, y), radius + 2, (16, 192, 255), thickness=8)
+            draw_circle(result_img, circle, color=(20, 200, 250), thickness=3)
 
             if show_label:
                 # Create a label for the circle based on its index.
@@ -1263,45 +1326,6 @@ def draw_circles(image, circles, show_label=True, solid=False):
 
     # Return the image with drawn circles and labels.
     return result_img
-
-
-def draw_centered_text_on_circle(result_img, x, y, label, font_scale=0.7, thickness=2, color=(40, 40, 40)):
-    """
-    Draws a label text centered on a circle at the given coordinates.
-
-    Args:
-        result_img (numpy.ndarray): The image on which to draw the text.
-        x (int): The x-coordinate of the circle's center.
-        y (int): The y-coordinate of the circle's center.
-        label (str): The text to draw on the image.
-        font_scale (float, optional): Scale factor for the font size. Default is 0.7.
-        thickness (int, optional): Thickness of the text. Default is 2.
-        color (tuple, optional): Color of the text in BGR format. Default is (40, 40, 40).
-
-    Returns:
-        None
-    """
-    # Determine the size of the text to center it on the circle.
-    (text_width, text_height), _ = cv2.getTextSize(
-        label,
-        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-        fontScale=font_scale,
-        thickness=thickness
-    )
-
-    # Calculate the position to place the text so that it's centered.
-    text_position = (int(x - text_width / 2), int(y + text_height / 2))
-
-    # Draw the label text on the image.
-    cv2.putText(
-        result_img,
-        label,
-        text_position,
-        cv2.FONT_HERSHEY_SIMPLEX,
-        fontScale=font_scale,
-        color=color,
-        thickness=thickness
-    )
 
 
 def get_exif_data(image):
@@ -1465,7 +1489,6 @@ def kmeans_recolor(original_image, n_clusters=8):
     original_vectorized = np.float32(original_vectorized)
     
     # Define criteria and apply K-Means clustering.
-    debug_print("Applying KMeans")
     attempts = 5
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     rets, labels, centers = cv2.kmeans(
@@ -1481,7 +1504,6 @@ def kmeans_recolor(original_image, n_clusters=8):
     clustered_labels = labels.reshape((original_image.shape[0], original_image.shape[1]))
     clustered_labels = np.uint8(clustered_labels)
 
-    debug_print("Coloring Viridis")
     # Normalize labels for applying a color map.
     labels_8bit = cv2.normalize(
         clustered_labels, 
@@ -1495,12 +1517,10 @@ def kmeans_recolor(original_image, n_clusters=8):
     # Apply a color map (e.g., COLORMAP_JET) for visualization.
     clustered_rgb = cv2.applyColorMap(labels_8bit, cv2.COLORMAP_JET)
     
-    debug_print("Recoloring based on original")
     # Assign each pixel the color of its corresponding cluster center.
     center = np.uint8(centers)
     res = center[labels.flatten()]
     recolored_image = res.reshape((original_image.shape))
-    debug_print("KMeans finished")
 
     # Resize the recolored image back to the original size.
     recolored_image = cv2.resize(recolored_image, (width, height), interpolation=cv2.INTER_AREA)
@@ -2431,10 +2451,10 @@ def remove_saturation_from_background(image, mask_background, default_color=None
     # Darken the background by reducing the value channel.
     img_background[..., 2] = img_background[..., 2] * 0.5
     # Apply the background mask to the desaturated and darkened background.
-    img_background = cv2.bitwise_and(img_background, img_background, mask=mask_background)
+    img_background = select_mask(img_background, mask_background)
 
     # Extract the foreground by inverting the background mask.
-    img_foreground = cv2.bitwise_and(image, image, mask=~mask_background)
+    img_foreground = select_mask(image, ~mask_background)
     # Combine the foreground and processed background.
     img_after = cv2.bitwise_or(img_foreground, img_background)
     # Convert the image back to RGB color space.
@@ -3245,12 +3265,11 @@ def count_fruits(directory, file_name, cfg):
     # 2.2. EXIF
     result_exif = {}
     extract_metadata_EXIF(img_IO, result_exif)
-    img_IO.close()		
+    img_IO.close()        
 
 
     # 2.4. Image resizing
-    img_crop = crop_image_to_aspect_ratio(img_original, cfg.aspect_ratio)
-    img_reduced = resize_image(img_crop, cfg.max_resolution)
+    img_reduced = resize_image(img_original, cfg.max_resolution)
 
 
     # 2.5. Color Amplification
@@ -3267,16 +3286,16 @@ def count_fruits(directory, file_name, cfg):
         img_smooth_color = smooth_color(img_amplified, kernel_size=cfg.smooth_colors, min_brightness=20, max_brightness=210)
 
 
-    # 2.7. Texture Removal
-    if cfg.texture_1_kernel_size <= 1:
-        img_texture = img_amplified
+    # 2.7. Removes Texturized Areas
+    if cfg.texture_kernel_size <= 1:
+        img_texture = img_smooth_color
     else:
-        img_texture, mask = detect_smooth_areas_rgb(img_amplified, 
-                                    kernel_size=cfg.texture_1_kernel_size, 
-                                    threshold_value=cfg.texture_1_threshold_value, 
-                                    noise=cfg.texture_1_noise, 
-                                    expand=cfg.texture_1_expand, 
-                                    it=cfg.texture_1_it)
+        img_texture, mask = detect_smooth_areas_rgb(img_smooth_color, 
+                                    kernel_size=cfg.texture_kernel_size, 
+                                    threshold_value=cfg.texture_threshold_value, 
+                                    noise=cfg.texture_noise, 
+                                    expand=cfg.texture_expand, 
+                                    it=cfg.texture_it)
                             
                             
     # 2.8. CLAHE
@@ -3291,6 +3310,7 @@ def count_fruits(directory, file_name, cfg):
     img_before = img_clahe_blur.copy()
     img_tmp = img_before.copy()
     mask_tmp = np.zeros(img_tmp.shape[:2], dtype=np.int8)
+
 
     # Iterate through the list of foreground colors to create masks
     for i in range(len(cfg.foreground_list)):
@@ -3312,102 +3332,67 @@ def count_fruits(directory, file_name, cfg):
             mask_tmp += np.where(mask_selected > 0, cfg.foreground_weight, 0)
 
             del selected_area, discarded_area, mask_selected
+        print('')
 
     # Create a binary foreground mask
     mask_foreground = np.where(mask_tmp >= 1, 255, 0).astype('uint8')
-    if '' in cfg.profile:
-        mask_foreground = expand_mask_circle(mask_foreground, kernel_size=7, iterations=1)
+    mask_foreground = expand_mask_circle(mask_foreground, kernel_size=7, iterations=1)
 
     # Apply the foreground mask to the smoothed color image
-    img_foreground = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=mask_foreground)
-    img_background = cv2.bitwise_and(img_smooth_color, img_smooth_color, mask=~mask_foreground)
-
-    mask_normal = normalize_mask_to_uint8(mask_tmp)
-
+    img_foreground = select_mask(img_smooth_color, mask_foreground)
+    img_background = select_mask(img_smooth_color,~mask_foreground)
+    
 
     # 2.10. Quantization
     if cfg.quantization_n_colors == 0:
-        img_quantization = img_foreground
+        img_clustered = img_foreground
     else:
-        img_preprocessed, clustered_rgb, clustered_labels = kmeans_recolor(img_foreground, n_clusters=cfg.quantization_n_colors)
+        img_clustered, clustered_rgb, clustered_labels = kmeans_recolor(img_foreground, n_clusters=cfg.quantization_n_colors)
 
 
     # 2.11. Refinement
-    img_before = img_preprocessed
+    img_before = img_clustered
     img_tmp = img_before
     mask_tmp = np.zeros(img_tmp.shape[:2], dtype=np.int8)
-    mask_certainly_object = np.zeros(img_tmp.shape[:2], dtype=np.uint8)
-
+    
     # Iterate through the list of target colors to create masks for object detection
-    for i in range(len(cfg.color_list)):
-        cfg.color_name = cfg.color_list[i][0][0]
-        cfg.color_weight = cfg.color_list[i][0][1]
+    for i in range(len(cfg.mask_list)):
+        cfg.color_name = cfg.mask_list[i][0][0]
+        cfg.color_weight = cfg.mask_list[i][0][1]
 
         if cfg.color_weight != 0:
             selected_area, discarded_area, mask_selected = filter_color(img_tmp, 
-                                                            color_ini=cfg.color_list[i][1][0:3], 
-                                                            color_end=cfg.color_list[i][1][3:6],  
-                                                            noise=cfg.color_list[i][1][6],
-                                                            expand=cfg.color_list[i][1][7],
-                                                            close=cfg.color_list[i][1][8],
-                                                            iterations=cfg.color_list[i][1][9])
+                                                            color_ini=cfg.mask_list[i][1][0:3], 
+                                                            color_end=cfg.mask_list[i][1][3:6],  
+                                                            noise=cfg.mask_list[i][1][6],
+                                                            expand=cfg.mask_list[i][1][7],
+                                                            close=cfg.mask_list[i][1][8],
+                                                            iterations=cfg.mask_list[i][1][9])
             
-            # Save a mask for areas that are certain to be objects (e.g., fruits)
-            if cfg.color_weight >= 2:
-                mask_rounded = cv2.bitwise_or(mask_certainly_object, mask_selected)
-                if cfg.smooth_mask_certain >= 3:
-                    kernel_size = cfg.smooth_mask_certain
-                    mask_rounded = erode_mask_circle(mask_rounded, kernel_size=kernel_size, iterations=1)
-                    mask_rounded = expand_mask_circle(mask_rounded, kernel_size=kernel_size, iterations=1)
-                    mask_rounded = erode_mask_circle(mask_rounded, kernel_size=make_odd(kernel_size/2), iterations=2)
-                    mask_rounded = expand_mask_circle(mask_rounded, kernel_size=make_odd(kernel_size/2), iterations=1)
-                mask_certainly_object = mask_rounded.astype('uint8')
-                mask_selected = mask_certainly_object
-
             # Accumulate mask weights based on configuration
             mask_tmp += np.where(mask_selected > 0, cfg.color_weight, 0)
 
             del selected_area, discarded_area, mask_selected
 
-    # Create a binary mask for objects
-    mask_objects = np.where(mask_tmp >= 1, 255, 0).astype('uint8')
-    img_objects = cv2.bitwise_and(img_before, img_before, mask=mask_objects)
-    img_discarded = cv2.bitwise_and(img_before, img_before, mask=~mask_objects)
-    img_preprocessed = img_objects
 
-    mask_normal = normalize_mask_to_uint8(mask_tmp)
+    print("As brighter the mask is, more probably it is an object:")
+    mask_normal = weights_to_grayscale(mask_tmp)
 
-
-    # 3.1. Fill holes
-    img_tmp = cv2.cvtColor(255-img_objects, cv2.COLOR_RGB2GRAY).copy()
-    img_before = img_tmp
-    img_filled = fill_holes_with_gray(img_tmp, 100);
-
-
-    # 3.2. Improve mask
-    img_tmp = img_filled.copy()
-
+    # 2.12. Mask preparation
+    
     # Convert mask to grayscale and invert
-    img_before = img_tmp
+    mask_before = mask_normal
+    mask_tmp = ~mask_normal.copy()
 
     # Apply noise removal and blurring to the mask
-    img_tmp = remove_salt_and_pepper(img_tmp, kernel_size=9)
-    img_tmp = blur_image(img_tmp, kernel_size=19)
-    img_gray_blur = img_tmp.copy()
+    mask_blur = blur_image(mask_tmp, kernel_size=13)
 
-    # Improve contrast of the mask
-    if cfg.factor_contrast != 1:
-        img_contrast_adjusted = np.clip(img_tmp**cfg.factor_contrast, 0, 254).astype('uint8')
-        img_tmp = np.where(img_tmp < 255, img_contrast_adjusted, img_tmp).astype('uint8')
-        
-    # Enhance visibility of certain objects, making it darker
-    img_tmp = np.where(mask_certainly_object > 0, img_tmp**0.92, img_tmp).astype('uint8')
+    img_preprocessed = mask_blur
 
-    img_objects_improved = img_tmp.copy()
-
+    # 3. Detect objects
     # Detect circles representing objects
     circles, img_delimited, mask_circles = \
-        detect_circles(img_filled, img_original=img_reduced,
+        detect_circles(img_preprocessed, img_original=img_reduced,
                         minCircularity=cfg.circle_minCircularity, 
                         minConvexity=cfg.circle_minConvexity, 
                         minInertiaRatio=cfg.circle_minInertiaRatio, 
@@ -3416,13 +3401,12 @@ def count_fruits(directory, file_name, cfg):
                         min_radius=cfg.min_radius_circle,
                         tolerance_overlap=cfg.tolerance_overlap)
 
-    num_circles = len(circles)
+    num_found_objects = len(circles)
+
+    #4. Final result
 
     # Draw detected circles on the original smoothed color image
     img_final = draw_circles(img_reduced, circles, show_label=True, solid=False)
-
-    # Calculate accuracy if ground truth is available
-    num_found_objects = num_circles
 
     try:
         # Extract expected number of objects from filename
@@ -3438,12 +3422,11 @@ def count_fruits(directory, file_name, cfg):
 
     header_image += f"    Filename={file_name}" if file_name != '' else ''
     footer_image = f"{result_exif}"
-    filename_pre_process = f"{file_name}_pre.jpg"
 
     return build_mosaic([img_final], 
                 headers=[header_image],
                 footers=[footer_image],
-                max_resolution=2000)
+                max_resolution=1280)
 
 
 def test_directory(directory, cfg, specific_files=[], limit_files=0):
@@ -3479,6 +3462,5 @@ def test_directory(directory, cfg, specific_files=[], limit_files=0):
 
             result_image = count_fruits(directory, file, cfg)
             result_images.append(result_image)
-            save_image(result_image, f'/kaggle/working/{file}')
             pbar.update(1)
     return result_images
